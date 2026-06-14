@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased font-sans min-h-screen selection:bg-primary-200 selection:text-primary-900;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+}
+
+/* Premium Card & Glassmorphic utilities */
+.glass-panel {
+  @apply bg-white/80 backdrop-blur-md border border-slate-200/40 shadow-sm rounded-2xl p-5 sm:p-6;
+}
+
+.glass-input-icon {
+  @apply bg-white/60 border border-slate-200/80 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all shadow-sm;
+}
+
+.glass-input-no-icon {
+  @apply bg-white/60 border border-slate-200/80 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all shadow-sm;
+}
+
+.glass-select {
+  @apply bg-white/60 border border-slate-200/80 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-all shadow-sm cursor-pointer;
+}
+
+.btn-primary {
+  @apply bg-primary-700 hover:bg-primary-800 active:scale-95 text-white font-medium px-4 py-2.5 rounded-xl shadow-sm hover:shadow-primary-700/10 transition-all flex items-center justify-center gap-2 text-sm;
+}
+
+.btn-secondary {
+  @apply bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 active:scale-95 font-medium px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white active:scale-95 font-medium px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm;
+}
+
+/* Print Invoice styles */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 12px;
+  }
+  .print-hide {
+    display: none !important;
+  }
+  .print-area {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* Ensure background-colors print correctly in chrome/safari */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Autofill overrides for dark login input fields */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover, 
+.login-input:-webkit-autofill:focus, 
+.login-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #092c16 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
