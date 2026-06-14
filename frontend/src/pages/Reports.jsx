@@ -18,15 +18,24 @@ const Reports = () => {
     address: 'Chichawatni, Punjab, Pakistan',
   });
 
-  // Date range, Company & Item filters
-  const [startDate, setStartDate] = useState(
-    (() => {
-      const d = new Date();
-      d.setDate(d.getDate() - 7); // Default to past 7 days
-      return d.toISOString().split('T')[0];
-    })()
-  );
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const getPakistanDateString = (date = new Date()) => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Karachi',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(date);
+    } catch (e) {
+      const offset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return localDate.toISOString().split('T')[0];
+    }
+  };
+
+  // Date range, Company & Item filters (Default to current date of Pakistan)
+  const [startDate, setStartDate] = useState(getPakistanDateString());
+  const [endDate, setEndDate] = useState(getPakistanDateString());
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
 

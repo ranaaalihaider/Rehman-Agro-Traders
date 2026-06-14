@@ -11,7 +11,13 @@ const StockOut = () => {
   const [filteredItems, setFilteredItems] = useState([]);
 
   // Form states
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    } catch (e) {
+      return new Date().toISOString().split('T')[0];
+    }
+  });
   const [companyId, setCompanyId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
