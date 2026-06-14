@@ -16,6 +16,7 @@ import StockSummary from './pages/StockSummary';
 import Reports from './pages/Reports';
 import ActivityLogs from './pages/ActivityLogs';
 import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -127,8 +128,8 @@ function App() {
             }
           />
 
-          {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 Not Found page */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -3,6 +3,22 @@ import API from '../utils/axiosConfig';
 import { Calendar, Search, Filter, ArrowRight, BarChart3, TrendingUp, RefreshCw, FileDown, Printer, Sprout } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+// Helper: get current Pakistan date as YYYY-MM-DD string (module level, always safe)
+const getPakistanDateString = (date = new Date()) => {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Karachi',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch (e) {
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60 * 1000);
+    return localDate.toISOString().split('T')[0];
+  }
+};
+
 const Reports = () => {
   const [items, setItems] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -18,24 +34,9 @@ const Reports = () => {
     address: 'Chichawatni, Punjab, Pakistan',
   });
 
-  const getPakistanDateString = (date = new Date()) => {
-    try {
-      return new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Karachi',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).format(date);
-    } catch (e) {
-      const offset = date.getTimezoneOffset();
-      const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-      return localDate.toISOString().split('T')[0];
-    }
-  };
-
   // Date range, Company & Item filters (Default to current date of Pakistan)
-  const [startDate, setStartDate] = useState(getPakistanDateString());
-  const [endDate, setEndDate] = useState(getPakistanDateString());
+  const [startDate, setStartDate] = useState(() => getPakistanDateString());
+  const [endDate, setEndDate] = useState(() => getPakistanDateString());
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
 
