@@ -79,20 +79,20 @@ const StockIn = () => {
       item.itemId = value;
       item.itemName = selectedItem ? selectedItem.itemName : '';
       item.rate = selectedItem ? selectedItem.purchasePrice : 0;
-      item.total = item.quantity * item.rate;
+      item.total = (item.quantity || 0) * (item.rate || 0);
     } else if (field === 'quantity') {
-      item.quantity = Math.max(1, Number(value));
-      item.total = item.quantity * item.rate;
+      item.quantity = value === '' ? '' : Math.max(0, Number(value));
+      item.total = (item.quantity || 0) * (item.rate || 0);
     } else if (field === 'rate') {
-      item.rate = Math.max(0, Number(value));
-      item.total = item.quantity * item.rate;
+      item.rate = value === '' ? '' : Math.max(0, Number(value));
+      item.total = (item.quantity || 0) * (item.rate || 0);
     }
 
     setItemsList(newList);
   };
 
   // Compute Grand Total
-  const grandTotal = itemsList.reduce((acc, curr) => acc + (curr.total || 0), 0);
+  const grandTotal = itemsList.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,7 +103,13 @@ const StockIn = () => {
       return;
     }
 
-    const invalidRow = itemsList.some((item) => !item.itemId || item.quantity <= 0 || item.rate < 0);
+    const invalidRow = itemsList.some((item) => 
+      !item.itemId || 
+      item.quantity === '' || 
+      Number(item.quantity) <= 0 || 
+      item.rate === '' || 
+      Number(item.rate) < 0
+    );
     if (invalidRow) {
       setError('Please select items and ensure rates/quantities are valid.');
       return;

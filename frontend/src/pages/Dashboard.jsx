@@ -9,7 +9,8 @@ import {
   History,
   Activity,
   Boxes,
-  DollarSign
+  DollarSign,
+  Sprout
 } from 'lucide-react';
 import {
   AreaChart,
@@ -110,11 +111,14 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Welcome Title */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800 tracking-wide">Business Overview Dashboard</h2>
-        <p className="text-sm text-slate-500">Real-time summaries and insights for Rehman Agro Traders.</p>
+      <div className="bg-gradient-to-r from-primary-800 to-primary-950 rounded-2xl p-6 text-white shadow-md shadow-primary-900/10 relative overflow-hidden">
+        <div className="absolute right-0 bottom-0 opacity-10 translate-y-4 translate-x-4 pointer-events-none">
+          <Sprout size={180} />
+        </div>
+        <h2 className="text-2xl font-extrabold tracking-wide font-sans">Business Dashboard</h2>
+        <p className="text-primary-100 text-xs mt-1 max-w-md">Real-time inventory ledger, operator logs, and performance metrics for Rehman Agro Traders.</p>
       </div>
 
       {/* Stats Cards Deck */}
@@ -124,7 +128,8 @@ const Dashboard = () => {
           return (
             <div
               key={i}
-              className="glass-panel p-5 border border-slate-200/60 hover:shadow-md transition-all duration-200 flex items-center justify-between"
+              className="glass-panel p-5 border border-slate-200/50 card-hover glow-primary flex items-center justify-between animate-slide-up"
+              style={{ animationDelay: `${i * 0.05}s` }}
             >
               <div className="space-y-1">
                 <span className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -142,8 +147,8 @@ const Dashboard = () => {
 
       {/* Secondary Quick-Stats (Today's Transactions) */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="glass-panel p-4 border border-slate-200/50 flex items-center gap-4 bg-white/70">
-          <div className="rounded-xl bg-primary-100 p-3 text-primary-700">
+        <div className="glass-panel p-4 border border-slate-200/50 card-hover flex items-center gap-4 bg-white/70 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <div className="rounded-xl bg-primary-100 p-3 text-primary-700 shadow-inner">
             <ArrowDownLeft size={22} />
           </div>
           <div>
@@ -159,8 +164,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="glass-panel p-4 border border-slate-200/50 flex items-center gap-4 bg-white/70">
-          <div className="rounded-xl bg-orange-100 p-3 text-orange-700">
+        <div className="glass-panel p-4 border border-slate-200/50 card-hover flex items-center gap-4 bg-white/70 animate-slide-up" style={{ animationDelay: '0.25s' }}>
+          <div className="rounded-xl bg-orange-100 p-3 text-orange-700 shadow-inner">
             <ArrowUpRight size={22} />
           </div>
           <div>
@@ -178,7 +183,7 @@ const Dashboard = () => {
       </div>
 
       {/* Chart and Activity Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 animate-slide-up" style={{ animationDelay: '0.3s' }}>
         {/* Weekly Stock Movements Chart */}
         <div className="glass-panel p-5 border border-slate-200/60 lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
