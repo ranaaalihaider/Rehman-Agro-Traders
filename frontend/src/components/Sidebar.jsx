@@ -26,6 +26,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [businessProfile, setBusinessProfile] = useState({ name: 'Rehman Agro Traders' });
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -37,6 +38,17 @@ const Sidebar = () => {
       }
     };
     fetchBusiness();
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   const navItems = [
@@ -57,12 +69,20 @@ const Sidebar = () => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Stock In', path: '/stock-in', icon: ArrowDownLeft },
     { name: 'Stock Out', path: '/stock-out', icon: ArrowUpRight },
-    { name: 'Invoices', path: '/invoices', icon: FileText },
+    { name: 'Reports', path: '/reports', icon: BarChart3 },
   ];
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to PWA prompt: ${outcome}`);
+    setDeferredPrompt(null);
   };
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -150,6 +170,15 @@ const Sidebar = () => {
 
         {/* Footer Admin Details & Logout */}
         <div className="mt-auto border-t border-slate-100 pt-4">
+          {deferredPrompt && (
+            <button
+              onClick={handleInstallClick}
+              className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold text-emerald-850 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-900 border border-emerald-250/30 shadow-sm transition-all duration-150"
+            >
+              <ArrowDownLeft size={16} className="rotate-45 animate-bounce" />
+              Install App (PWA)
+            </button>
+          )}
           <div className="mb-3 flex items-center gap-3 px-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-800 font-bold text-sm">
               {user?.username?.substring(0, 2).toUpperCase() || 'AD'}

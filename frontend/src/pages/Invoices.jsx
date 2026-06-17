@@ -15,6 +15,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import PrintInvoice from '../components/PrintInvoice';
 
 const Invoices = () => {
@@ -24,7 +25,8 @@ const Invoices = () => {
   const [success, setSuccess] = useState('');
 
   // Filters
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [typeFilter, setTypeFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');

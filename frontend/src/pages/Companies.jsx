@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import API from '../utils/axiosConfig';
 import { Search, Plus, Edit2, Trash2, X, Check, Building2, AlertTriangle } from 'lucide-react';
 
 const Companies = () => {
+  const [searchParams] = useSearchParams();
   const [companies, setCompanies] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

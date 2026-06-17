@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import API from '../utils/axiosConfig';
-import { History, Search, RefreshCw, AlertCircle, PlusCircle, Edit3, Trash2, Settings, UserCheck } from 'lucide-react';
+import { 
+  History, 
+  Search, 
+  RefreshCw, 
+  AlertCircle, 
+  PlusCircle, 
+  Edit3, 
+  Trash2, 
+  Settings, 
+  UserCheck, 
+  ExternalLink,
+  Lock
+} from 'lucide-react';
 
 const ActivityLogs = () => {
   const [activities, setActivities] = useState([]);
@@ -32,29 +45,146 @@ const ActivityLogs = () => {
   // Filter activities based on search query
   const filteredActivities = activities.filter((act) => {
     const term = search.toLowerCase();
+    const actCat = getActivityCategory(act.action).toLowerCase();
     return (
       act.action.toLowerCase().includes(term) ||
       act.description.toLowerCase().includes(term) ||
-      act.user.toLowerCase().includes(term)
+      act.user.toLowerCase().includes(term) ||
+      actCat.includes(term)
     );
   });
 
+  // Helper to categorize log action types
+  const getActivityCategory = (action) => {
+    if (!action) return 'System';
+    const act = action.toLowerCase();
+    if (act.includes('invoice')) return 'Invoice';
+    if (act.includes('item') || act.includes('product')) return 'Product';
+    if (act.includes('company')) return 'Company';
+    if (act.includes('category')) return 'Category';
+    if (act.includes('settings')) return 'Settings';
+    if (act.includes('login') || act.includes('password')) return 'Security';
+    return 'System';
+  };
+
+  // Helper to determine category styling
+  const getCategoryStyles = (category) => {
+    switch (category) {
+      case 'Invoice':
+        return 'bg-blue-50 text-blue-700 border-blue-200/60';
+      case 'Product':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
+      case 'Company':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200/60';
+      case 'Category':
+        return 'bg-purple-50 text-purple-700 border-purple-200/60';
+      case 'Settings':
+        return 'bg-amber-50 text-amber-700 border-amber-200/60';
+      case 'Security':
+        return 'bg-red-50 text-red-700 border-red-200/60';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200/60';
+    }
+  };
+
   // Helper to determine action icons and colors
   const getActionStyles = (action) => {
+    if (!action) return { icon: UserCheck, color: 'text-slate-600 bg-slate-50 border-slate-100' };
     const act = action.toLowerCase();
-    if (act.includes('created') || act.includes('add')) {
-      return { icon: PlusCircle, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' };
+    if (act.includes('created') || act.includes('add') || act.includes('seed')) {
+      return { icon: PlusCircle, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
     }
-    if (act.includes('edit') || act.includes('update') || act.includes('changed')) {
-      return { icon: Edit3, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' };
+    if (act.includes('edit') || act.includes('update') || act.includes('changed') || act.includes('modify')) {
+      return { icon: Edit3, color: 'text-indigo-700 bg-indigo-50 border-indigo-100' };
     }
     if (act.includes('delete') || act.includes('remove')) {
-      return { icon: Trash2, color: 'text-red-600 bg-red-50 border-red-100' };
+      return { icon: Trash2, color: 'text-red-700 bg-red-50 border-red-100' };
     }
     if (act.includes('settings')) {
-      return { icon: Settings, color: 'text-amber-600 bg-amber-50 border-amber-100' };
+      return { icon: Settings, color: 'text-amber-700 bg-amber-50 border-amber-100' };
+    }
+    if (act.includes('login') || act.includes('password')) {
+      return { icon: Lock, color: 'text-rose-700 bg-rose-50 border-rose-100' };
     }
     return { icon: UserCheck, color: 'text-slate-600 bg-slate-50 border-slate-100' };
+  };
+
+  // Helper to parse target redirection links safely
+  const parseActionLink = (act) => {
+    try {
+      if (!act || !act.action || !act.description) return null;
+      const action = act.action.toLowerCase();
+      const description = act.description;
+
+      // Deletes cannot link to anything as the entity is gone
+      if (action.includes('delete') || action.includes('remove')) {
+        return null;
+      }
+
+      if (action.includes('invoice')) {
+        const match = description.match(/Invoice\s*#:\s*([^\s,]+)/i);
+        if (match && match[1]) {
+          return {
+            to: `/invoices?search=${encodeURIComponent(match[1].trim())}`,
+            label: 'View Slip',
+          };
+        }
+      }
+
+      if (action.includes('item')) {
+        const match = description.match(/item\s*"([^"]+)"/i);
+        if (match && match[1]) {
+          return {
+            to: `/items?search=${encodeURIComponent(match[1].trim())}`,
+            label: 'View Product',
+          };
+        }
+      }
+
+      if (action.includes('company')) {
+        let match = description.match(/company:\s*([^\n,.]+)/i);
+        if (!match) {
+          match = description.match(/to\s*"([^"]+)"/i);
+        }
+        if (match && match[1]) {
+          const name = match[1].replace(/"/g, '').trim();
+          return {
+            to: `/companies?search=${encodeURIComponent(name)}`,
+            label: 'View Company',
+          };
+        }
+      }
+
+      if (action.includes('category')) {
+        let match = description.match(/category:\s*([^\n,.]+)/i);
+        if (!match) {
+          match = description.match(/to\s*"([^"]+)"/i);
+        }
+        if (match && match[1]) {
+          const name = match[1].replace(/"/g, '').trim();
+          return {
+            to: `/categories?search=${encodeURIComponent(name)}`,
+            label: 'View Category',
+          };
+        }
+      }
+
+      if (action.includes('settings')) {
+        return {
+          to: '/settings',
+          label: 'View Settings',
+        };
+      }
+    } catch (e) {
+      console.error('Failed to parse log redirection:', e);
+    }
+    return null;
+  };
+
+  const formatTimestamp = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return `${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
   };
 
   return (
@@ -63,7 +193,7 @@ const ActivityLogs = () => {
       <div>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 tracking-wide">Activity History Logs</h2>
+            <h2 className="text-2xl font-bold text-slate-800 tracking-wide font-outfit">Activity History Logs</h2>
             <p className="text-sm text-slate-500">Track operations, invoice saves, edits, settings updates, and admin actions.</p>
           </div>
           <button
@@ -94,72 +224,97 @@ const ActivityLogs = () => {
         <input
           type="text"
           className="bg-transparent focus:outline-none w-full text-slate-700 placeholder-slate-400 text-sm"
-          placeholder="Filter history log list..."
+          placeholder="Filter logs by operator, category, action, details..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      {/* Timeline View */}
+      {/* Table View */}
       {loading ? (
         <div className="flex h-[30vh] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-primary-600"></div>
         </div>
       ) : (
-        <div className="glass-panel p-6 border border-slate-200/60 bg-white relative">
-          
-          {/* Vertical timeline line helper */}
-          <div className="absolute left-11 top-8 bottom-8 w-0.5 bg-slate-100 hidden sm:block"></div>
+        <div className="glass-panel overflow-hidden border border-slate-200/60 bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-slate-200/80 bg-slate-50/50">
+                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Timestamp</th>
+                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Operator</th>
+                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Category</th>
+                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Action Type</th>
+                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Action Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredActivities.length > 0 ? (
+                  filteredActivities.map((act) => {
+                    const category = getActivityCategory(act.action);
+                    const catStyles = getCategoryStyles(category);
+                    const actStyles = getActionStyles(act.action);
+                    const linkInfo = parseActionLink(act);
+                    const Icon = actStyles.icon;
 
-          <div className="space-y-6 relative">
-            {filteredActivities.length > 0 ? (
-              filteredActivities.map((act) => {
-                const styles = getActionStyles(act.action);
-                const Icon = styles.icon;
-                return (
-                  <div key={act._id} className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-sm relative">
-                    
-                    {/* Icon Column */}
-                    <div className="flex items-center sm:block z-10 shrink-0">
-                      <div className={`rounded-xl border p-2.5 ${styles.color}`}>
-                        <Icon size={18} />
-                      </div>
-                    </div>
+                    return (
+                      <tr key={act._id} className="hover:bg-slate-50/60 transition-colors">
+                        {/* Timestamp */}
+                        <td className="py-4 px-4 text-slate-500 font-mono whitespace-nowrap">
+                          {formatTimestamp(act.timestamp)}
+                        </td>
 
-                    {/* Content Details Column */}
-                    <div className="space-y-1 sm:pt-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-slate-800">{act.action}</span>
-                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-500 font-sans border border-slate-200/40">
-                          operator: {act.user}
-                        </span>
-                      </div>
-                      <p className="text-slate-600 text-xs">{act.description}</p>
-                      
-                      {/* Date details */}
-                      <p className="text-[10px] text-slate-400 font-sans">
-                        {new Date(act.timestamp).toLocaleDateString([], {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}{' '}
-                        at{' '}
-                        {new Date(act.timestamp).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-8 text-center text-slate-400">
-                No history logs match search query.
-              </div>
-            )}
+                        {/* Operator */}
+                        <td className="py-4 px-4">
+                          <span className="inline-block px-2 py-1 uppercase rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/50">
+                            {act.user}
+                          </span>
+                        </td>
+
+                        {/* Category */}
+                        <td className="py-4 px-4 whitespace-nowrap">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold border ${catStyles}`}>
+                            {category}
+                          </span>
+                        </td>
+
+                        {/* Action Type */}
+                        <td className="py-4 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                            <span className={`rounded p-1 ${actStyles.color}`}>
+                              <Icon size={12} />
+                            </span>
+                            <span>{act.action}</span>
+                          </div>
+                        </td>
+
+                        {/* Action Details */}
+                        <td className="py-4 px-4">
+                          <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+                            <span className="text-slate-600 break-words max-w-xl">{act.description}</span>
+                            {linkInfo && (
+                              <Link 
+                                to={linkInfo.to}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-primary-50 text-primary-700 border border-primary-100 hover:bg-primary-100 hover:text-primary-800 transition-all shrink-0 cursor-pointer shadow-sm"
+                              >
+                                <span>{linkInfo.label}</span>
+                                <ExternalLink size={12} />
+                              </Link>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="py-8 text-center text-slate-400">
+                      No history logs match search query.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

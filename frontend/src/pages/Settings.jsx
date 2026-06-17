@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import API from '../utils/axiosConfig';
 import { AuthContext } from '../context/AuthContext';
-import { Settings, Save, ShieldAlert, CheckCircle, Info, Lock, Users, UserPlus, Trash2, AlertTriangle } from 'lucide-react';
+import { Settings, Save, ShieldAlert, CheckCircle, Info, Lock, Users, UserPlus, Trash2, AlertTriangle, Download } from 'lucide-react';
 
 const SettingsPage = () => {
   const { user: currentUser } = useContext(AuthContext);
@@ -35,6 +35,9 @@ const SettingsPage = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPass, setSavingPass] = useState(false);
 
+  // PWA state
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
   const fetchUsers = async () => {
     try {
       const { data } = await API.get('/auth/users');
@@ -61,7 +64,25 @@ const SettingsPage = () => {
     };
     fetchProfile();
     fetchUsers();
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to PWA prompt: ${outcome}`);
+    setDeferredPrompt(null);
+  };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -470,6 +491,29 @@ const SettingsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* PWA Install Banner */}
+      {deferredPrompt && (
+        <div className="glass-panel p-6 border border-emerald-250 bg-emerald-50/20 space-y-4 animate-fadeIn mt-6">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-600 p-2.5 text-white shadow-md shadow-emerald-600/10">
+              <Download size={20} className="animate-pulse" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-[15px]">Install AgroStock App</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Install the application on your home screen or desktop for fast, offline-capable access.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleInstallClick}
+            className="btn-primary bg-emerald-700 hover:bg-emerald-800 py-2.5 text-xs font-semibold px-6 self-start flex items-center gap-2"
+          >
+            <Download size={14} />
+            Install Desktop/Mobile App
+          </button>
+        </div>
+      )}
     </div>
   );
 };

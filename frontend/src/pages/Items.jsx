@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import API from '../utils/axiosConfig';
 import { Search, Plus, Edit2, Trash2, X, AlertTriangle, Layers, Filter } from 'lucide-react';
 
@@ -11,7 +12,8 @@ const Items = () => {
   const [success, setSuccess] = useState('');
 
   // Search and Filter States
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [companyFilter, setCompanyFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
