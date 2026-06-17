@@ -43,13 +43,18 @@ const ActivityLogs = () => {
   };
 
   // Filter activities based on search query
-  const filteredActivities = activities.filter((act) => {
-    const term = search.toLowerCase();
-    const actCat = getActivityCategory(act.action).toLowerCase();
+  const activityList = Array.isArray(activities) ? activities : [];
+  const filteredActivities = activityList.filter((act) => {
+    if (!act) return false;
+    const term = (search || '').toLowerCase();
+    const action = String(act.action || '');
+    const description = String(act.description || '');
+    const user = String(act.user || '');
+    const actCat = getActivityCategory(action).toLowerCase();
     return (
-      act.action.toLowerCase().includes(term) ||
-      act.description.toLowerCase().includes(term) ||
-      act.user.toLowerCase().includes(term) ||
+      action.toLowerCase().includes(term) ||
+      description.toLowerCase().includes(term) ||
+      user.toLowerCase().includes(term) ||
       actCat.includes(term)
     );
   });
@@ -57,7 +62,7 @@ const ActivityLogs = () => {
   // Helper to categorize log action types
   const getActivityCategory = (action) => {
     if (!action) return 'System';
-    const act = action.toLowerCase();
+    const act = String(action).toLowerCase();
     if (act.includes('invoice')) return 'Invoice';
     if (act.includes('item') || act.includes('product')) return 'Product';
     if (act.includes('company')) return 'Company';
@@ -89,32 +94,37 @@ const ActivityLogs = () => {
 
   // Helper to determine action icons and colors
   const getActionStyles = (action) => {
-    if (!action) return { icon: UserCheck, color: 'text-slate-600 bg-slate-50 border-slate-100' };
-    const act = action.toLowerCase();
-    if (act.includes('created') || act.includes('add') || act.includes('seed')) {
-      return { icon: PlusCircle, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
+    const defaultStyle = { icon: UserCheck, color: 'text-slate-600 bg-slate-50 border-slate-100' };
+    if (!action) return defaultStyle;
+    try {
+      const act = String(action).toLowerCase();
+      if (act.includes('created') || act.includes('add') || act.includes('seed')) {
+        return { icon: PlusCircle, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
+      }
+      if (act.includes('edit') || act.includes('update') || act.includes('changed') || act.includes('modify')) {
+        return { icon: Edit3, color: 'text-indigo-700 bg-indigo-50 border-indigo-100' };
+      }
+      if (act.includes('delete') || act.includes('remove')) {
+        return { icon: Trash2, color: 'text-red-700 bg-red-50 border-red-100' };
+      }
+      if (act.includes('settings')) {
+        return { icon: Settings, color: 'text-amber-700 bg-amber-50 border-amber-100' };
+      }
+      if (act.includes('login') || act.includes('password')) {
+        return { icon: Lock, color: 'text-rose-700 bg-rose-50 border-rose-100' };
+      }
+    } catch (e) {
+      console.error(e);
     }
-    if (act.includes('edit') || act.includes('update') || act.includes('changed') || act.includes('modify')) {
-      return { icon: Edit3, color: 'text-indigo-700 bg-indigo-50 border-indigo-100' };
-    }
-    if (act.includes('delete') || act.includes('remove')) {
-      return { icon: Trash2, color: 'text-red-700 bg-red-50 border-red-100' };
-    }
-    if (act.includes('settings')) {
-      return { icon: Settings, color: 'text-amber-700 bg-amber-50 border-amber-100' };
-    }
-    if (act.includes('login') || act.includes('password')) {
-      return { icon: Lock, color: 'text-rose-700 bg-rose-50 border-rose-100' };
-    }
-    return { icon: UserCheck, color: 'text-slate-600 bg-slate-50 border-slate-100' };
+    return defaultStyle;
   };
 
   // Helper to parse target redirection links safely
   const parseActionLink = (act) => {
     try {
       if (!act || !act.action || !act.description) return null;
-      const action = act.action.toLowerCase();
-      const description = act.description;
+      const action = String(act.action).toLowerCase();
+      const description = String(act.description);
 
       // Deletes cannot link to anything as the entity is gone
       if (action.includes('delete') || action.includes('remove')) {
@@ -182,9 +192,16 @@ const ActivityLogs = () => {
   };
 
   const formatTimestamp = (ts) => {
-    if (!ts) return '';
-    const d = new Date(ts);
-    return `${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    try {
+      if (!ts) return 'N/A';
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) {
+        return 'N/A';
+      }
+      return `${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    } catch (e) {
+      return 'N/A';
+    }
   };
 
   return (
