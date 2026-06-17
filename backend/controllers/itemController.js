@@ -83,7 +83,7 @@ export const createItem = async (req, res) => {
     
     await logActivity(
       'Item Created',
-      `Created item "${item.itemName}" under "${populatedItem.companyId.companyName}" with opening stock of ${initialStock} ${unit}`,
+      `Created item "${item.itemName}" under "${populatedItem.companyId.companyName}" (Category: "${populatedItem.category?.name || 'fertilizers'}") with opening stock of ${initialStock} ${unit}`,
       req.user.username
     );
 
@@ -147,7 +147,7 @@ export const updateItem = async (req, res) => {
 
     await logActivity(
       'Item Updated',
-      `Updated item "${populatedItem.itemName}". Details: Price P/S: ${populatedItem.purchasePrice}/${populatedItem.salePrice}, Stock: ${populatedItem.quantity}`,
+      `Updated item "${populatedItem.itemName}". Details: Category: "${populatedItem.category?.name || 'fertilizers'}", Price P/S: ${populatedItem.purchasePrice}/${populatedItem.salePrice}, Stock: ${populatedItem.quantity}`,
       req.user.username
     );
 
