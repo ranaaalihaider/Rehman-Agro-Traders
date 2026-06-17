@@ -124,6 +124,20 @@ export const updateItem = async (req, res) => {
       }
     }
 
+    const oldPopulated = await Item.findById(req.params.id)
+      .populate('companyId', 'companyName')
+      .populate('category', 'name');
+
+    const previousState = oldPopulated ? {
+      itemName: oldPopulated.itemName,
+      companyName: oldPopulated.companyId?.companyName || 'None',
+      categoryName: oldPopulated.category?.name || 'fertilizers',
+      purchasePrice: oldPopulated.purchasePrice,
+      salePrice: oldPopulated.salePrice,
+      quantity: oldPopulated.quantity,
+      unit: oldPopulated.unit,
+    } : null;
+
     const oldOpening = item.openingStock;
     const newOpening = openingStock !== undefined ? Number(openingStock) : oldOpening;
     const diff = newOpening - oldOpening;
@@ -145,10 +159,22 @@ export const updateItem = async (req, res) => {
       .populate('companyId', 'companyName')
       .populate('category', 'name');
 
+    const newState = {
+      itemName: populatedItem.itemName,
+      companyName: populatedItem.companyId?.companyName || 'None',
+      categoryName: populatedItem.category?.name || 'fertilizers',
+      purchasePrice: populatedItem.purchasePrice,
+      salePrice: populatedItem.salePrice,
+      quantity: populatedItem.quantity,
+      unit: populatedItem.unit,
+    };
+
     await logActivity(
       'Item Updated',
       `Updated item "${populatedItem.itemName}". Details: Category: "${populatedItem.category?.name || 'fertilizers'}", Price P/S: ${populatedItem.purchasePrice}/${populatedItem.salePrice}, Stock: ${populatedItem.quantity}`,
-      req.user.username
+      req.user.username,
+      previousState,
+      newState
     );
 
     res.json(populatedItem);

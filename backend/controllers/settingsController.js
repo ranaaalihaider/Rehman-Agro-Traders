@@ -33,12 +33,31 @@ export const updateBusinessProfile = async (req, res) => {
       profile = new Business();
     }
     
+    const previousState = profile ? {
+      name: profile.name,
+      contact: profile.contact,
+      address: profile.address,
+    } : null;
+
     profile.name = name || profile.name;
     profile.contact = contact || profile.contact;
     profile.address = address || profile.address;
 
     const updatedProfile = await profile.save();
-    await logActivity('Settings Updated', `Business profile updated to: ${profile.name}`, req.user ? req.user.username : 'admin');
+    
+    const newState = {
+      name: updatedProfile.name,
+      contact: updatedProfile.contact,
+      address: updatedProfile.address,
+    };
+
+    await logActivity(
+      'Settings Updated', 
+      `Business profile updated to: ${profile.name}`, 
+      req.user ? req.user.username : 'admin',
+      previousState,
+      newState
+    );
     
     res.json(updatedProfile);
   } catch (error) {

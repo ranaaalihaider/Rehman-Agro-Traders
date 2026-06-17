@@ -159,11 +159,190 @@ const formatTimestamp = (ts) => {
   }
 };
 
+const getDifferenceList = (prev, curr) => {
+  if (!prev || !curr) return [];
+  try {
+    const diffs = [];
+    const allKeys = new Set([...Object.keys(prev), ...Object.keys(curr)]);
+    
+    for (const key of allKeys) {
+      if (key === 'items') continue;
+      
+      const oldVal = prev[key];
+      const newVal = curr[key];
+      
+      if (oldVal === newVal) continue;
+      if ((oldVal === undefined || oldVal === null) && (newVal === undefined || newVal === null)) continue;
+      
+      const labels = {
+        itemName: 'Item Name',
+        companyName: 'Supplier Company',
+        categoryName: 'Product Category',
+        purchasePrice: 'Purchase Price',
+        salePrice: 'Sale Price',
+        quantity: 'Stock Qty',
+        unit: 'Stock Unit',
+        invoiceNumber: 'Invoice #',
+        customerSupplierName: 'Customer/Supplier Name',
+        totalAmount: 'Total Amount',
+        notes: 'Notes',
+        date: 'Date',
+        name: 'Business Name',
+        contact: 'Contact #',
+        address: 'Address'
+      };
+
+      const formatVal = (v) => {
+        if (v === undefined || v === null) return 'None';
+        if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+        if (typeof v === 'object') return JSON.stringify(v);
+        return String(v);
+      };
+      
+      diffs.push({
+        field: labels[key] || key,
+        oldValue: formatVal(oldVal),
+        newValue: formatVal(newVal)
+      });
+    }
+    return diffs;
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+};
+
+const getItemDifference = (prevItems, currItems) => {
+  if (!Array.isArray(prevItems) || !Array.isArray(currItems)) return null;
+  try {
+    const diffs = [];
+    const allNames = new Set([
+      ...prevItems.map(i => i.itemName).filter(Boolean),
+      ...currItems.map(i => i.itemName).filter(Boolean)
+    ]);
+
+    for (const name of allNames) {
+      const oldItem = prevItems.find(i => i.itemName === name);
+      const newItem = currItems.find(i => i.itemName === name);
+
+      const oldQty = oldItem ? Number(oldItem.quantity) : 0;
+      const newQty = newItem ? Number(newItem.quantity) : 0;
+      const oldRate = oldItem ? Number(oldItem.rate) : 0;
+      const newRate = newItem ? Number(newItem.rate) : 0;
+
+      if (oldQty !== newQty || oldRate !== newRate) {
+        diffs.push({
+          itemName: name,
+          oldQty,
+          newQty,
+          oldRate,
+          newRate,
+        });
+      }
+    }
+    return diffs.length > 0 ? diffs : null;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};
+
 const ActivityLogs = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [startDate, setStartDate] = useState(() => getLocalDateString());
+  const [endDate, setEndDate] = useState(() => getLocalDateString());
+  const [expandedDiffs, setExpandedDiffs] = useState({});
+
+  const toggleDiff = (id) => {
+    setExpandedDiffs((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const renderDiffWidget = (act) => {
+    if (!act.previousState || !act.newState) return null;
+    const isExpanded = !!expandedDiffs[act._id];
+    const diffs = getDifferenceList(act.previousState, act.newState);
+    const itemDiffs = getItemDifference(act.previousState.items, act.newState.items);
+
+    if (diffs.length === 0 && !itemDiffs) return null;
+
+    return (
+      <div className="mt-2 text-xs">
+        <button
+          onClick={() => toggleDiff(act._id)}
+          className="text-primary-600 hover:text-primary-800 font-semibold flex items-center gap-1 focus:outline-none transition-colors mb-1.5 cursor-pointer"
+        >
+          <span>{isExpanded ? 'Hide Changes' : 'Show Changes'}</span>
+          <span className="text-[10px] uppercase bg-primary-50 px-1.5 py-0.5 rounded text-primary-700 font-sans border border-primary-100">
+            {diffs.length + (itemDiffs ? itemDiffs.length : 0)} updated
+          </span>
+        </button>
+
+        {isExpanded && (
+          <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-3 space-y-2.5 animate-fadeIn max-w-xl">
+            {diffs.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Field Modifications</div>
+                <div className="grid gap-2">
+                  {diffs.map((d, index) => (
+                    <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded-lg bg-white border border-slate-100 shadow-sm">
+                      <span className="font-semibold text-slate-750 text-slate-700">{d.field}:</span>
+                      <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-100 text-red-600 line-through">
+                          {d.oldValue}
+                        </span>
+                        <span className="text-slate-400 font-bold">&rarr;</span>
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-100 text-emerald-700 font-semibold">
+                          {d.newValue}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {itemDiffs && (
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Item Quantity & Rate Changes</div>
+                <div className="grid gap-2">
+                  {itemDiffs.map((idiff, index) => (
+                    <div key={index} className="p-2 rounded-lg bg-white border border-slate-100 shadow-sm space-y-1">
+                      <div className="font-bold text-slate-800 text-[11px]">{idiff.itemName}</div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px]">
+                        {idiff.oldQty !== idiff.newQty && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider">Qty:</span>
+                            <span className="text-red-500 line-through">{idiff.oldQty}</span>
+                            <span className="text-slate-400">&rarr;</span>
+                            <span className="text-emerald-600 font-semibold">{idiff.newQty}</span>
+                          </div>
+                        )}
+                        {idiff.oldRate !== idiff.newRate && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400 font-bold uppercase tracking-wider">Rate:</span>
+                            <span className="text-red-500 line-through">{idiff.oldRate}</span>
+                            <span className="text-slate-400">&rarr;</span>
+                            <span className="text-emerald-600 font-semibold">{idiff.newRate}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const fetchActivities = async () => {
     try {
@@ -408,6 +587,7 @@ const ActivityLogs = () => {
                                 </Link>
                               )}
                             </div>
+                            {renderDiffWidget(act)}
                           </td>
                         </tr>
                       );
@@ -462,6 +642,8 @@ const ActivityLogs = () => {
 
                     {/* Action Details */}
                     <p className="text-xs text-slate-600 break-words leading-relaxed">{act.description}</p>
+                    
+                    {renderDiffWidget(act)}
 
                     {/* Secure Direct Link */}
                     {linkInfo && (

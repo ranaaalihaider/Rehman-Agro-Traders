@@ -71,7 +71,13 @@ export const updateCategory = async (req, res) => {
     category.name = name.trim();
     const updatedCategory = await category.save();
 
-    await logActivity('Category Updated', `Updated category from "${oldName}" to "${category.name}"`, req.user.username);
+    await logActivity(
+      'Category Updated', 
+      `Updated category from "${oldName}" to "${category.name}"`, 
+      req.user.username,
+      { categoryName: oldName },
+      { categoryName: category.name }
+    );
     res.json(updatedCategory);
   } catch (error) {
     res.status(500).json({ message: error.message });

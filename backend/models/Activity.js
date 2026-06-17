@@ -19,6 +19,14 @@ const activitySchema = new mongoose.Schema({
     required: true,
     default: Date.now,
   },
+  previousState: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null,
+  },
+  newState: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null,
+  },
 });
 
 const Activity = mongoose.model('Activity', activitySchema);

@@ -1,13 +1,15 @@
 import Activity from '../models/Activity.js';
 
 // Helper to log activity and auto-prune logs older than 3 months
-export const logActivity = async (action, description, user = 'admin') => {
+export const logActivity = async (action, description, user = 'admin', previousState = null, newState = null) => {
   try {
     // Save new log
     await Activity.create({
       action,
       description,
       user,
+      previousState,
+      newState,
     });
 
     // Auto-prune logs older than 3 months

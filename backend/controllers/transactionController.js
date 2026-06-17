@@ -137,6 +137,20 @@ export const updateTransaction = async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
+    const previousState = {
+      invoiceNumber: oldTx.invoiceNumber,
+      customerSupplierName: oldTx.customerSupplierName,
+      totalAmount: oldTx.totalAmount,
+      notes: oldTx.notes,
+      date: oldTx.date,
+      items: oldTx.items.map(i => ({
+        itemName: i.itemName,
+        quantity: i.quantity,
+        rate: i.rate,
+        totalAmount: i.totalAmount,
+      })),
+    };
+
     const type = oldTx.type; // Type cannot change for safety
 
     // 1. Pre-validate stock changes in-memory
@@ -225,8 +239,22 @@ export const updateTransaction = async (req, res) => {
 
     const updatedTx = await oldTx.save();
     
+    const newState = {
+      invoiceNumber: updatedTx.invoiceNumber,
+      customerSupplierName: updatedTx.customerSupplierName,
+      totalAmount: updatedTx.totalAmount,
+      notes: updatedTx.notes,
+      date: updatedTx.date,
+      items: updatedTx.items.map(i => ({
+        itemName: i.itemName,
+        quantity: i.quantity,
+        rate: i.rate,
+        totalAmount: i.totalAmount,
+      })),
+    };
+
     const activityDesc = `${type === 'STOCK_IN' ? 'Stock In (Purchase)' : 'Stock Out (Sale)'} invoice edited by "${req.user.name}" (${req.user.username}). Invoice #: ${updatedTx.invoiceNumber || updatedTx._id.toString().substring(18)}, New Total: ${invoiceTotal}`;
-    await logActivity('Invoice Edited', activityDesc, req.user.username);
+    await logActivity('Invoice Edited', activityDesc, req.user.username, previousState, newState);
 
     res.json(updatedTx);
   } catch (error) {

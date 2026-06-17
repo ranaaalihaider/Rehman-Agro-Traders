@@ -71,7 +71,13 @@ export const updateCompany = async (req, res) => {
     company.companyName = companyName.trim();
     const updatedCompany = await company.save();
 
-    await logActivity('Company Updated', `Updated company from "${oldName}" to "${company.companyName}"`, req.user.username);
+    await logActivity(
+      'Company Updated', 
+      `Updated company from "${oldName}" to "${company.companyName}"`, 
+      req.user.username,
+      { companyName: oldName },
+      { companyName: company.companyName }
+    );
     res.json(updatedCompany);
   } catch (error) {
     res.status(500).json({ message: error.message });
