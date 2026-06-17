@@ -113,10 +113,11 @@ const ActivityLogs = () => {
       if (act.includes('login') || act.includes('password')) {
         return { icon: Lock, color: 'text-rose-700 bg-rose-50 border-rose-100' };
       }
+      return defaultStyle;
     } catch (e) {
       console.error(e);
+      return defaultStyle;
     }
-    return defaultStyle;
   };
 
   // Helper to parse target redirection links safely
@@ -185,10 +186,11 @@ const ActivityLogs = () => {
           label: 'View Settings',
         };
       }
+      return null;
     } catch (e) {
       console.error('Failed to parse log redirection:', e);
+      return null;
     }
-    return null;
   };
 
   const formatTimestamp = (ts) => {
@@ -270,9 +272,9 @@ const ActivityLogs = () => {
                   filteredActivities.map((act) => {
                     const category = getActivityCategory(act.action);
                     const catStyles = getCategoryStyles(category);
-                    const actStyles = getActionStyles(act.action);
+                    const actStyles = getActionStyles(act.action) || {};
                     const linkInfo = parseActionLink(act);
-                    const Icon = actStyles.icon;
+                    const Icon = actStyles.icon || UserCheck;
 
                     return (
                       <tr key={act._id} className="hover:bg-slate-50/60 transition-colors">
