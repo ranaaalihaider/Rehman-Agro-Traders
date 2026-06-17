@@ -46,7 +46,13 @@ export const updatePassword = async (req, res) => {
     if (user && (await user.matchPassword(oldPassword))) {
       user.password = newPassword;
       await user.save();
-      await logActivity('Password Changed', `User "${user.name}" updated password`, user.username);
+      await logActivity(
+        'Password Changed', 
+        `User "${user.name}" updated password`, 
+        user.username,
+        { passwordChanged: false },
+        { passwordChanged: true }
+      );
       res.json({ message: 'Password updated successfully' });
     } else {
       res.status(400).json({ message: 'Invalid old password' });
@@ -93,7 +99,9 @@ export const createUser = async (req, res) => {
     await logActivity(
       'Admin Created',
       `Created new admin user: "${newUser.name}" (${newUser.username})`,
-      req.user.username
+      req.user.username,
+      null,
+      { name: newUser.name, username: newUser.username }
     );
 
     res.status(201).json({
@@ -134,7 +142,9 @@ export const deleteUser = async (req, res) => {
     await logActivity(
       'Admin Deleted',
       `Deleted admin user: "${userToDelete.name}" (${userToDelete.username})`,
-      req.user.username
+      req.user.username,
+      { name: userToDelete.name, username: userToDelete.username },
+      null
     );
 
     res.json({ message: 'User removed successfully' });

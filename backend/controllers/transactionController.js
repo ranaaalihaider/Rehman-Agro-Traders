@@ -116,8 +116,22 @@ export const createTransaction = async (req, res) => {
       createdBy: req.user.username,
     });
 
+    const newState = {
+      invoiceNumber: transaction.invoiceNumber,
+      customerSupplierName: transaction.customerSupplierName,
+      totalAmount: transaction.totalAmount,
+      notes: transaction.notes,
+      date: transaction.date,
+      items: transaction.items.map(i => ({
+        itemName: i.itemName,
+        quantity: i.quantity,
+        rate: i.rate,
+        totalAmount: i.totalAmount,
+      })),
+    };
+
     const activityDesc = `${type === 'STOCK_IN' ? 'Stock In (Purchase)' : 'Stock Out (Sale)'} invoice created by "${req.user.name}" (${req.user.username}). Invoice #: ${transaction.invoiceNumber || transaction._id.toString().substring(18)}, Total: ${invoiceTotal}`;
-    await logActivity('Invoice Created', activityDesc, req.user.username);
+    await logActivity('Invoice Created', activityDesc, req.user.username, null, newState);
 
     res.status(201).json(transaction);
   } catch (error) {
@@ -292,11 +306,25 @@ export const deleteTransaction = async (req, res) => {
       await Item.findByIdAndUpdate(item.itemId, { $inc: { quantity: change } });
     }
 
+    const previousState = {
+      invoiceNumber: transaction.invoiceNumber,
+      customerSupplierName: transaction.customerSupplierName,
+      totalAmount: transaction.totalAmount,
+      notes: transaction.notes,
+      date: transaction.date,
+      items: transaction.items.map(i => ({
+        itemName: i.itemName,
+        quantity: i.quantity,
+        rate: i.rate,
+        totalAmount: i.totalAmount,
+      })),
+    };
+
     // 3. Remove transaction
     await Transaction.findByIdAndDelete(req.params.id);
 
     const activityDesc = `${type === 'STOCK_IN' ? 'Stock In (Purchase)' : 'Stock Out (Sale)'} invoice deleted. Invoice #: ${invoiceNumber || transaction._id.toString().substring(18)}`;
-    await logActivity('Invoice Deleted', activityDesc, req.user.username);
+    await logActivity('Invoice Deleted', activityDesc, req.user.username, previousState, null);
 
     res.json({ message: 'Invoice deleted successfully' });
   } catch (error) {

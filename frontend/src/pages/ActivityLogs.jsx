@@ -16,6 +16,20 @@ import {
 } from 'lucide-react';
 
 // Pure helper functions placed outside the component to guarantee clean hoisting and avoid Temporal Dead Zone (TDZ)
+const getLocalDateString = (date = new Date()) => {
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    console.error('getLocalDateString error:', e);
+    return '';
+  }
+};
+
 const getActivityCategory = (action) => {
   if (!action) return 'System';
   const act = String(action).toLowerCase();
@@ -160,16 +174,18 @@ const formatTimestamp = (ts) => {
 };
 
 const getDifferenceList = (prev, curr) => {
-  if (!prev || !curr) return [];
+  if (!prev && !curr) return [];
+  const p = prev || {};
+  const c = curr || {};
   try {
     const diffs = [];
-    const allKeys = new Set([...Object.keys(prev), ...Object.keys(curr)]);
+    const allKeys = new Set([...Object.keys(p), ...Object.keys(c)]);
     
     for (const key of allKeys) {
       if (key === 'items') continue;
       
-      const oldVal = prev[key];
-      const newVal = curr[key];
+      const oldVal = p[key];
+      const newVal = c[key];
       
       if (oldVal === newVal) continue;
       if ((oldVal === undefined || oldVal === null) && (newVal === undefined || newVal === null)) continue;
@@ -189,7 +205,8 @@ const getDifferenceList = (prev, curr) => {
         date: 'Date',
         name: 'Business Name',
         contact: 'Contact #',
-        address: 'Address'
+        address: 'Address',
+        passwordChanged: 'Password Changed'
       };
 
       const formatVal = (v) => {
@@ -213,17 +230,19 @@ const getDifferenceList = (prev, curr) => {
 };
 
 const getItemDifference = (prevItems, currItems) => {
-  if (!Array.isArray(prevItems) || !Array.isArray(currItems)) return null;
+  const prevList = Array.isArray(prevItems) ? prevItems : [];
+  const currList = Array.isArray(currItems) ? currItems : [];
+  if (prevList.length === 0 && currList.length === 0) return null;
   try {
     const diffs = [];
     const allNames = new Set([
-      ...prevItems.map(i => i.itemName).filter(Boolean),
-      ...currItems.map(i => i.itemName).filter(Boolean)
+      ...prevList.map(i => i.itemName).filter(Boolean),
+      ...currList.map(i => i.itemName).filter(Boolean)
     ]);
 
     for (const name of allNames) {
-      const oldItem = prevItems.find(i => i.itemName === name);
-      const newItem = currItems.find(i => i.itemName === name);
+      const oldItem = prevList.find(i => i.itemName === name);
+      const newItem = currList.find(i => i.itemName === name);
 
       const oldQty = oldItem ? Number(oldItem.quantity) : 0;
       const newQty = newItem ? Number(newItem.quantity) : 0;
@@ -257,6 +276,19 @@ const ActivityLogs = () => {
   const [endDate, setEndDate] = useState(() => getLocalDateString());
   const [expandedDiffs, setExpandedDiffs] = useState({});
 
+  const handleShiftDate = (days) => {
+    try {
+      const baseDate = startDate ? new Date(startDate) : new Date();
+      if (isNaN(baseDate.getTime())) return;
+      baseDate.setDate(baseDate.getDate() + days);
+      const shiftedStr = getLocalDateString(baseDate);
+      setStartDate(shiftedStr);
+      setEndDate(shiftedStr);
+    } catch (e) {
+      console.error('Failed to shift date:', e);
+    }
+  };
+
   const toggleDiff = (id) => {
     setExpandedDiffs((prev) => ({
       ...prev,
@@ -265,10 +297,13 @@ const ActivityLogs = () => {
   };
 
   const renderDiffWidget = (act) => {
-    if (!act.previousState || !act.newState) return null;
+    if (!act.previousState && !act.newState) return null;
     const isExpanded = !!expandedDiffs[act._id];
     const diffs = getDifferenceList(act.previousState, act.newState);
-    const itemDiffs = getItemDifference(act.previousState.items, act.newState.items);
+    const itemDiffs = getItemDifference(
+      act.previousState ? act.previousState.items : null,
+      act.newState ? act.newState.items : null
+    );
 
     if (diffs.length === 0 && !itemDiffs) return null;
 

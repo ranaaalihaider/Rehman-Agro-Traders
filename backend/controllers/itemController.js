@@ -80,11 +80,23 @@ export const createItem = async (req, res) => {
     const populatedItem = await Item.findById(item._id)
       .populate('companyId', 'companyName')
       .populate('category', 'name');
+
+    const newState = {
+      itemName: populatedItem.itemName,
+      companyName: populatedItem.companyId?.companyName || 'None',
+      categoryName: populatedItem.category?.name || 'fertilizers',
+      purchasePrice: populatedItem.purchasePrice,
+      salePrice: populatedItem.salePrice,
+      quantity: populatedItem.quantity,
+      unit: populatedItem.unit,
+    };
     
     await logActivity(
       'Item Created',
       `Created item "${item.itemName}" under "${populatedItem.companyId.companyName}" (Category: "${populatedItem.category?.name || 'fertilizers'}") with opening stock of ${initialStock} ${unit}`,
-      req.user.username
+      req.user.username,
+      null,
+      newState
     );
 
     res.status(201).json(populatedItem);
@@ -204,8 +216,22 @@ export const deleteItem = async (req, res) => {
       });
     }
 
+    const populatedItem = await Item.findById(req.params.id)
+      .populate('companyId', 'companyName')
+      .populate('category', 'name');
+
+    const previousState = populatedItem ? {
+      itemName: populatedItem.itemName,
+      companyName: populatedItem.companyId?.companyName || 'None',
+      categoryName: populatedItem.category?.name || 'fertilizers',
+      purchasePrice: populatedItem.purchasePrice,
+      salePrice: populatedItem.salePrice,
+      quantity: populatedItem.quantity,
+      unit: populatedItem.unit,
+    } : null;
+
     await Item.findByIdAndDelete(req.params.id);
-    await logActivity('Item Deleted', `Deleted item: "${item.itemName}"`, req.user.username);
+    await logActivity('Item Deleted', `Deleted item: "${item.itemName}"`, req.user.username, previousState, null);
     res.json({ message: 'Item removed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

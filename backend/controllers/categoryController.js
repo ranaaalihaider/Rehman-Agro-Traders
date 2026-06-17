@@ -36,7 +36,13 @@ export const createCategory = async (req, res) => {
     }
 
     const category = await Category.create({ name: name.trim() });
-    await logActivity('Category Created', `Added new category: ${category.name}`, req.user.username);
+    await logActivity(
+      'Category Created', 
+      `Added new category: ${category.name}`, 
+      req.user.username,
+      null,
+      { categoryName: category.name }
+    );
     res.status(201).json(category);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -103,7 +109,13 @@ export const deleteCategory = async (req, res) => {
     }
 
     await Category.findByIdAndDelete(req.params.id);
-    await logActivity('Category Deleted', `Deleted category: ${category.name}`, req.user.username);
+    await logActivity(
+      'Category Deleted', 
+      `Deleted category: ${category.name}`, 
+      req.user.username,
+      { categoryName: category.name },
+      null
+    );
     res.json({ message: 'Category removed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

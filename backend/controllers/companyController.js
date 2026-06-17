@@ -36,7 +36,13 @@ export const createCompany = async (req, res) => {
     }
 
     const company = await Company.create({ companyName: companyName.trim() });
-    await logActivity('Company Created', `Added new company: ${company.companyName}`, req.user.username);
+    await logActivity(
+      'Company Created', 
+      `Added new company: ${company.companyName}`, 
+      req.user.username,
+      null,
+      { companyName: company.companyName }
+    );
     res.status(201).json(company);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -103,7 +109,13 @@ export const deleteCompany = async (req, res) => {
     }
 
     await Company.findByIdAndDelete(req.params.id);
-    await logActivity('Company Deleted', `Deleted company: ${company.companyName}`, req.user.username);
+    await logActivity(
+      'Company Deleted', 
+      `Deleted company: ${company.companyName}`, 
+      req.user.username,
+      { companyName: company.companyName },
+      null
+    );
     res.json({ message: 'Company removed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
