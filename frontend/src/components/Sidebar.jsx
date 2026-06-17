@@ -29,9 +29,14 @@ const Sidebar = () => {
   const location = useLocation();
   const [businessProfile, setBusinessProfile] = useState({ name: 'Rehman Agro Traders' });
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showInstallGuideModal, setShowInstallGuideModal] = useState(false);
+  const [activeInstallTab, setActiveInstallTab] = useState(() => {
+    const ua = navigator.userAgent || '';
+    if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+    if (/Android/.test(ua)) return 'android';
+    return 'desktop';
+  });
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -83,7 +88,10 @@ const Sidebar = () => {
   };
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      setShowInstallGuideModal(true);
+      return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     console.log(`User response to PWA prompt: ${outcome}`);
@@ -105,6 +113,15 @@ const Sidebar = () => {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {!isStandalone && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+            >
+              <Download size={13} className="animate-bounce text-emerald-700" />
+              <span>Install App</span>
+            </button>
+          )}
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-800 font-bold text-xs uppercase shadow-sm">
             {user?.username?.substring(0, 2).toUpperCase() || 'AD'}
           </div>
@@ -175,23 +192,13 @@ const Sidebar = () => {
 
         {/* Footer Admin Details & Logout */}
         <div className="mt-auto border-t border-slate-100 pt-4">
-          {deferredPrompt && (
+          {!isStandalone && (
             <button
               onClick={handleInstallClick}
-              className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold text-emerald-850 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-900 border border-emerald-250/30 shadow-sm transition-all duration-150"
+              className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold text-emerald-850 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-900 border border-emerald-250/30 shadow-sm transition-all duration-150 animate-fadeIn"
             >
-              <ArrowDownLeft size={16} className="rotate-45 animate-bounce" />
+              <Download size={16} className="animate-bounce text-emerald-700" />
               Install App (PWA)
-            </button>
-          )}
-
-          {isIOS && !isStandalone && (
-            <button
-              onClick={() => setShowIOSGuide(true)}
-              className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold text-amber-850 bg-amber-50 hover:bg-amber-100 hover:text-amber-900 border border-amber-250/30 shadow-sm transition-all duration-150 animate-fadeIn"
-            >
-              <Download size={16} className="animate-bounce" />
-              Install on iPhone
             </button>
           )}
           <div className="mb-3 flex items-center gap-3 px-2">
@@ -253,53 +260,150 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* iOS Installation Guide Modal Overlay */}
-      {showIOSGuide && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+      {/* PWA Installation Guide Modal Overlay */}
+      {showInstallGuideModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-800 text-[15px] flex items-center gap-1.5">
-                <Download size={16} className="text-primary-700" />
-                Install on iPhone / iPad
+                <Download size={16} className="text-primary-700 animate-pulse" />
+                Install AgroStock App
               </h3>
               <button
-                onClick={() => setShowIOSGuide(false)}
+                onClick={() => setShowInstallGuideModal(false)}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="text-xs text-slate-650 space-y-3 leading-relaxed">
-              <p className="text-slate-500">
-                Apple requires progressive web apps to be installed manually through the Safari/Chrome menu:
-              </p>
-              
-              <ol className="list-decimal list-inside space-y-2 text-slate-700 font-medium">
-                <li>
-                  Open this website in your iPhone's <strong>Safari</strong> (or Chrome) browser.
-                </li>
-                <li>
-                  Tap the <strong>Share</strong> button (box icon with an upward-pointing arrow) on the toolbar.
-                </li>
-                <li>
-                  Scroll down the share sheet options and tap <strong>"Add to Home Screen"</strong>.
-                </li>
-                <li>
-                  Tap <strong>Add</strong> in the top-right corner to complete the installation.
-                </li>
-              </ol>
+            {/* Platform Selection Tabs */}
+            <div className="flex border-b border-slate-100">
+              <button
+                onClick={() => setActiveInstallTab('android')}
+                className={`flex-1 pb-2 text-xs font-bold text-center border-b-2 transition-all ${
+                  activeInstallTab === 'android'
+                    ? 'border-primary-700 text-primary-800'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                Android
+              </button>
+              <button
+                onClick={() => setActiveInstallTab('ios')}
+                className={`flex-1 pb-2 text-xs font-bold text-center border-b-2 transition-all ${
+                  activeInstallTab === 'ios'
+                    ? 'border-primary-700 text-primary-800'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                iPhone / iPad
+              </button>
+              <button
+                onClick={() => setActiveInstallTab('desktop')}
+                className={`flex-1 pb-2 text-xs font-bold text-center border-b-2 transition-all ${
+                  activeInstallTab === 'desktop'
+                    ? 'border-primary-700 text-primary-800'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                PC / Mac
+              </button>
+            </div>
 
-              <div className="rounded-xl bg-amber-50 border border-amber-200/60 p-3 text-[11px] text-amber-700 flex gap-2">
-                <Info size={14} className="text-amber-500 shrink-0" />
-                <span>Once added, launch it directly from your iPhone home screen to run in native standalone app mode!</span>
+            {/* Tab Contents */}
+            <div className="py-2 text-xs leading-relaxed text-slate-650">
+              {activeInstallTab === 'android' && (
+                <div className="space-y-3">
+                  <p className="text-[12px] text-slate-500">
+                    Follow these steps to install the app on Chrome for Android:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 text-slate-700 font-medium">
+                    <li>
+                      Open <strong>Google Chrome</strong> and go to this website.
+                    </li>
+                    <li>
+                      Tap the <strong>Menu</strong> (three vertical dots in the top-right corner).
+                    </li>
+                    <li>
+                      Select <strong>"Install app"</strong> (or <strong>"Add to Home screen"</strong>).
+                    </li>
+                    <li>
+                      Confirm by tapping <strong>Install</strong>.
+                    </li>
+                  </ol>
+                </div>
+              )}
+
+              {activeInstallTab === 'ios' && (
+                <div className="space-y-3">
+                  <p className="text-[12px] text-slate-500">
+                    Apple requires Progressive Web Apps to be installed manually using Safari:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 text-slate-700 font-medium">
+                    <li>
+                      Open <strong>Safari</strong> on your iPhone or iPad.
+                    </li>
+                    <li>
+                      Tap the <strong>Share</strong> button (square icon with an arrow pointing up on the bottom toolbar).
+                    </li>
+                    <li>
+                      Scroll down the options list and tap <strong>"Add to Home Screen"</strong>.
+                    </li>
+                    <li>
+                      Tap <strong>Add</strong> in the top-right corner to complete the installation.
+                    </li>
+                  </ol>
+                </div>
+              )}
+
+              {activeInstallTab === 'desktop' && (
+                <div className="space-y-3">
+                  <p className="text-[12px] text-slate-500">
+                    Install on Windows / macOS / Linux using Chrome, Edge, or Brave:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-2 text-slate-700 font-medium">
+                    <li>
+                      Look at the right side of the address bar at the top of the browser window.
+                    </li>
+                    <li>
+                      Click the <strong>Install</strong> icon (looks like a computer monitor with a down arrow, next to the bookmark star).
+                    </li>
+                    <li>
+                      Or click the <strong>Menu (3 dots)</strong> &rarr; <strong>"Save and share"</strong> &rarr; <strong>"Install AgroStock"</strong>.
+                    </li>
+                    <li>
+                      Click <strong>Install</strong> in the confirmation box.
+                    </li>
+                  </ol>
+                </div>
+              )}
+            </div>
+
+            {deferredPrompt && (
+              <div className="bg-emerald-50 border border-emerald-200/60 rounded-xl p-3 flex flex-col items-center gap-2">
+                <p className="text-[11px] font-medium text-emerald-800 text-center">
+                  Your browser supports direct installation. Click below to install instantly:
+                </p>
+                <button
+                  onClick={handleInstallClick}
+                  className="btn-primary py-2 px-5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-800 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Download size={14} />
+                  Install Automatically
+                </button>
               </div>
+            )}
+
+            <div className="rounded-xl bg-amber-50 border border-amber-200/60 p-3 text-[11px] text-amber-700 flex gap-2">
+              <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <span>Once added, launch it directly from your device home screen to run in native full-screen mode!</span>
             </div>
 
             <div className="flex justify-end pt-2">
               <button
                 type="button"
-                onClick={() => setShowIOSGuide(false)}
+                onClick={() => setShowInstallGuideModal(false)}
                 className="btn-primary py-2 px-5 text-xs font-semibold bg-primary-750 hover:bg-primary-850"
               >
                 Got It

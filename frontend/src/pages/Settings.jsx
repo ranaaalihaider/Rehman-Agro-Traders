@@ -773,49 +773,49 @@ const SettingsPage = () => {
 
       {/* PWA Install / Guide Banner */}
       {!isStandalone && (
-        <div className="glass-panel p-6 border border-emerald-200 bg-emerald-50/20 space-y-4 animate-fadeIn mt-6">
+        <div className="glass-panel p-6 border border-emerald-250 bg-emerald-50/10 space-y-4 animate-fadeIn mt-6">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-600 p-2.5 text-white shadow-md shadow-emerald-600/10">
+            <div className="rounded-xl bg-emerald-700 p-2.5 text-white shadow-md shadow-emerald-700/10">
               <Download size={20} className="animate-pulse" />
             </div>
             <div>
               <h3 className="font-bold text-slate-800 text-[15px]">Install AgroStock App (PWA)</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Install this application to your device's home screen for an offline-ready, app-like experience.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Install this application to your device's home screen for full-screen, offline-ready stock management.</p>
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 text-xs text-slate-650 pt-3 border-t border-slate-100">
-            {/* Native Install Option (Chrome/Android/PC) */}
+          <div className="grid gap-6 md:grid-cols-3 text-xs text-slate-650 pt-4 border-t border-slate-100">
+            {/* Android Option */}
             <div className="space-y-2">
-              <p className="font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
-                <span>1. Android & PC Chrome/Edge</span>
-              </p>
+              <p className="font-bold text-slate-800 text-[13px]">1. Android (Chrome)</p>
               <p className="text-slate-500 leading-relaxed">
-                If prompted, tap the install button below. Otherwise, click the browser menu (three dots in Chrome) and select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.
+                Tap the menu (3 dots) in Chrome at the top right and select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.
               </p>
-              {deferredPrompt ? (
+              {deferredPrompt && (
                 <button
                   type="button"
                   onClick={handleInstallClick}
-                  className="btn-primary bg-emerald-700 hover:bg-emerald-800 py-2 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                  className="btn-primary bg-emerald-700 hover:bg-emerald-800 py-1.5 px-3.5 text-xs font-semibold flex items-center gap-1.5 shadow-sm mt-1"
                 >
                   <Download size={13} />
-                  Install App
+                  Install Now
                 </button>
-              ) : (
-                <span className="inline-block text-[11px] font-medium text-slate-400 italic">
-                  (Browser prompt loaded or already installed)
-                </span>
               )}
             </div>
 
-            {/* iOS/Safari Option (iPhones) */}
+            {/* iOS Option */}
             <div className="space-y-2 border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-6">
-              <p className="font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
-                <span>2. iPhone & iPad (Safari or Chrome)</span>
-              </p>
+              <p className="font-bold text-slate-800 text-[13px]">2. iPhone & iPad (Safari)</p>
               <p className="text-slate-500 leading-relaxed">
-                Apple requires installing manually: Tap the <strong>Share</strong> button (box with an upward-pointing arrow) in the browser toolbar, scroll down, and tap <strong>"Add to Home Screen"</strong>.
+                Tap the <strong>Share</strong> button (box icon with upward arrow) on Safari's bottom toolbar, scroll down, and select <strong>"Add to Home Screen"</strong>.
+              </p>
+            </div>
+
+            {/* Desktop Option */}
+            <div className="space-y-2 border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-6">
+              <p className="font-bold text-slate-800 text-[13px]">3. PC & Laptop (Chrome/Edge)</p>
+              <p className="text-slate-500 leading-relaxed">
+                Click the <strong>Install</strong> icon in the address bar (next to bookmark star), or open the menu (3 dots) and select <strong>"Install AgroStock"</strong>.
               </p>
             </div>
           </div>
