@@ -5,6 +5,7 @@ import { Settings, Save, ShieldAlert, CheckCircle, Info, Lock, Users, UserPlus, 
 
 const SettingsPage = () => {
   const { user: currentUser } = useContext(AuthContext);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
   // Business Profile states
   const [name, setName] = useState('');
@@ -770,26 +771,54 @@ const SettingsPage = () => {
         </div>
       )}
 
-      {/* PWA Install Banner */}
-      {deferredPrompt && (
-        <div className="glass-panel p-6 border border-emerald-250 bg-emerald-50/20 space-y-4 animate-fadeIn mt-6">
+      {/* PWA Install / Guide Banner */}
+      {!isStandalone && (
+        <div className="glass-panel p-6 border border-emerald-200 bg-emerald-50/20 space-y-4 animate-fadeIn mt-6">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-emerald-600 p-2.5 text-white shadow-md shadow-emerald-600/10">
               <Download size={20} className="animate-pulse" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800 text-[15px]">Install AgroStock App</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Install the application on your home screen or desktop for fast, offline-capable access.</p>
+              <h3 className="font-bold text-slate-800 text-[15px]">Install AgroStock App (PWA)</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Install this application to your device's home screen for an offline-ready, app-like experience.</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleInstallClick}
-            className="btn-primary bg-emerald-700 hover:bg-emerald-800 py-2.5 text-xs font-semibold px-6 self-start flex items-center gap-2"
-          >
-            <Download size={14} />
-            Install Desktop/Mobile App
-          </button>
+
+          <div className="grid gap-6 md:grid-cols-2 text-xs text-slate-650 pt-3 border-t border-slate-100">
+            {/* Native Install Option (Chrome/Android/PC) */}
+            <div className="space-y-2">
+              <p className="font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
+                <span>1. Android & PC Chrome/Edge</span>
+              </p>
+              <p className="text-slate-500 leading-relaxed">
+                If prompted, tap the install button below. Otherwise, click the browser menu (three dots in Chrome) and select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.
+              </p>
+              {deferredPrompt ? (
+                <button
+                  type="button"
+                  onClick={handleInstallClick}
+                  className="btn-primary bg-emerald-700 hover:bg-emerald-800 py-2 px-4 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Download size={13} />
+                  Install App
+                </button>
+              ) : (
+                <span className="inline-block text-[11px] font-medium text-slate-400 italic">
+                  (Browser prompt loaded or already installed)
+                </span>
+              )}
+            </div>
+
+            {/* iOS/Safari Option (iPhones) */}
+            <div className="space-y-2 border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-6">
+              <p className="font-bold text-slate-800 flex items-center gap-1.5 text-[13px]">
+                <span>2. iPhone & iPad (Safari or Chrome)</span>
+              </p>
+              <p className="text-slate-500 leading-relaxed">
+                Apple requires installing manually: Tap the <strong>Share</strong> button (box with an upward-pointing arrow) in the browser toolbar, scroll down, and tap <strong>"Add to Home Screen"</strong>.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

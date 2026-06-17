@@ -17,7 +17,9 @@ import {
   Menu,
   X,
   Sprout,
-  Tags
+  Tags,
+  Download,
+  Info
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -27,6 +29,9 @@ const Sidebar = () => {
   const location = useLocation();
   const [businessProfile, setBusinessProfile] = useState({ name: 'Rehman Agro Traders' });
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -179,6 +184,16 @@ const Sidebar = () => {
               Install App (PWA)
             </button>
           )}
+
+          {isIOS && !isStandalone && (
+            <button
+              onClick={() => setShowIOSGuide(true)}
+              className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold text-amber-850 bg-amber-50 hover:bg-amber-100 hover:text-amber-900 border border-amber-250/30 shadow-sm transition-all duration-150 animate-fadeIn"
+            >
+              <Download size={16} className="animate-bounce" />
+              Install on iPhone
+            </button>
+          )}
           <div className="mb-3 flex items-center gap-3 px-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-800 font-bold text-sm">
               {user?.username?.substring(0, 2).toUpperCase() || 'AD'}
@@ -237,6 +252,62 @@ const Sidebar = () => {
           <span className="text-[10px] font-medium mt-0.5 tracking-wide leading-none">Menu</span>
         </button>
       </div>
+
+      {/* iOS Installation Guide Modal Overlay */}
+      {showIOSGuide && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-800 text-[15px] flex items-center gap-1.5">
+                <Download size={16} className="text-primary-700" />
+                Install on iPhone / iPad
+              </h3>
+              <button
+                onClick={() => setShowIOSGuide(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-650 space-y-3 leading-relaxed">
+              <p className="text-slate-500">
+                Apple requires progressive web apps to be installed manually through the Safari/Chrome menu:
+              </p>
+              
+              <ol className="list-decimal list-inside space-y-2 text-slate-700 font-medium">
+                <li>
+                  Open this website in your iPhone's <strong>Safari</strong> (or Chrome) browser.
+                </li>
+                <li>
+                  Tap the <strong>Share</strong> button (box icon with an upward-pointing arrow) on the toolbar.
+                </li>
+                <li>
+                  Scroll down the share sheet options and tap <strong>"Add to Home Screen"</strong>.
+                </li>
+                <li>
+                  Tap <strong>Add</strong> in the top-right corner to complete the installation.
+                </li>
+              </ol>
+
+              <div className="rounded-xl bg-amber-50 border border-amber-200/60 p-3 text-[11px] text-amber-700 flex gap-2">
+                <Info size={14} className="text-amber-500 shrink-0" />
+                <span>Once added, launch it directly from your iPhone home screen to run in native standalone app mode!</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowIOSGuide(false)}
+                className="btn-primary py-2 px-5 text-xs font-semibold bg-primary-750 hover:bg-primary-850"
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
