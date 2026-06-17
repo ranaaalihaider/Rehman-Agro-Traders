@@ -103,7 +103,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Mobile Top Bar (print:hidden) */}
-      <div className="flex h-auto min-h-[4rem] items-center justify-between border-b border-slate-200/80 bg-white px-4 pt-safe pb-3 md:hidden print-hide">
+      <div className="flex h-auto min-h-[4.5rem] items-center justify-between border-b border-slate-200/80 bg-white px-4 pt-safe pb-3 md:hidden print-hide">
         <div className="flex items-center gap-2">
           <div className="rounded-lg bg-primary-700 p-2 text-white">
             <Sprout size={20} />
@@ -223,7 +223,7 @@ const Sidebar = () => {
       </aside>
 
       {/* Mobile Bottom Navigation Bar (print:hidden) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 backdrop-blur-md px-2 pb-safe md:hidden print-hide shadow-[0_-4px_16px_-4px_rgba(0,0,0,0.08)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex h-auto min-h-[72px] items-center justify-around border-t border-slate-200 bg-white/95 backdrop-blur-md px-2 pb-safe pt-2 md:hidden print-hide shadow-[0_-4px_16px_-4px_rgba(0,0,0,0.08)]">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
@@ -232,14 +232,14 @@ const Sidebar = () => {
               key={item.path}
               to={item.path}
               onClick={() => setIsOpen(false)}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all duration-150 relative ${
+              className={`flex flex-col items-center justify-center flex-1 h-full py-2 text-center transition-all duration-150 relative ${
                 isActive ? 'text-primary-700' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               <div className={`p-1.5 rounded-xl transition-all duration-200 ${isActive ? 'bg-primary-50 scale-105' : ''}`}>
-                <Icon size={20} />
+                <Icon size={22} />
               </div>
-              <span className="text-[10px] font-medium mt-0.5 tracking-wide leading-none">{item.name}</span>
+              <span className="text-[11px] font-medium mt-1 tracking-wide leading-none">{item.name}</span>
               {isActive && (
                 <span className="absolute top-0 w-8 h-0.5 rounded-b bg-primary-700 shadow shadow-primary-700/50" />
               )}
@@ -249,14 +249,14 @@ const Sidebar = () => {
         {/* Menu/More Toggle Button */}
         <button
           onClick={toggleSidebar}
-          className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all duration-150 relative ${
+          className={`flex flex-col items-center justify-center flex-1 h-full py-2 text-center transition-all duration-150 relative ${
             isOpen ? 'text-primary-700' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <div className={`p-1.5 rounded-xl transition-all duration-200 ${isOpen ? 'bg-primary-50 scale-105' : ''}`}>
-            {isOpen ? <X size={20} /> : <Menu size={20} />}
+            {isOpen ? <X size={22} /> : <Menu size={22} />}
           </div>
-          <span className="text-[10px] font-medium mt-0.5 tracking-wide leading-none">Menu</span>
+          <span className="text-[11px] font-medium mt-1 tracking-wide leading-none">Menu</span>
         </button>
       </div>
 
