@@ -186,21 +186,42 @@ const ActivityLogs = () => {
     fetchActivities();
   };
 
-  // Filter activities based on search query
+  // Filter activities based on search query, type/category, and date range
   const activityList = Array.isArray(activities) ? activities : [];
   const filteredActivities = activityList.filter((act) => {
     if (!act) return false;
+
+    // 1. Search term match
     const term = (search || '').toLowerCase();
     const action = String(act.action || '');
     const description = String(act.description || '');
     const user = String(act.user || '');
-    const actCat = getActivityCategory(action).toLowerCase();
-    return (
+    const category = getActivityCategory(action);
+    const actCat = category.toLowerCase();
+    
+    const matchesSearch = (
       action.toLowerCase().includes(term) ||
       description.toLowerCase().includes(term) ||
       user.toLowerCase().includes(term) ||
       actCat.includes(term)
     );
+
+    // 2. Category match
+    const matchesCategory = !categoryFilter || category === categoryFilter;
+
+    // 3. Date range match (UTC to local conversion)
+    let matchesDate = true;
+    if (act.timestamp) {
+      const actDateStr = getLocalDateString(new Date(act.timestamp));
+      if (startDate && actDateStr < startDate) {
+        matchesDate = false;
+      }
+      if (endDate && actDateStr > endDate) {
+        matchesDate = false;
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesDate;
   });
 
   return (
@@ -234,105 +255,236 @@ const ActivityLogs = () => {
         <span>System Log Policy: Logs older than 3 months are automatically pruned on new inserts.</span>
       </div>
 
-      {/* Search Filter */}
-      <div className="glass-panel p-4 border border-slate-200/50 flex items-center gap-3 bg-white/70 max-w-md">
-        <Search size={18} className="text-slate-400" />
-        <input
-          type="text"
-          className="bg-transparent focus:outline-none w-full text-slate-700 placeholder-slate-400 text-sm"
-          placeholder="Filter logs by operator, category, action, details..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Filter and Date Panel */}
+      <div className="glass-panel p-4 border border-slate-200/50 bg-white/70 space-y-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Search Filter */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Search Logs</label>
+            <div className="relative flex items-center">
+              <Search size={16} className="absolute left-3 text-slate-400" />
+              <input
+                type="text"
+                className="glass-input-no-icon pl-9 w-full py-1.5 text-sm"
+                placeholder="Search details, operator..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Category Type Filter */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Category Type</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="glass-input-no-icon w-full py-1.5 text-sm cursor-pointer"
+            >
+              <option value="">All Categories</option>
+              <option value="Invoice">Invoice</option>
+              <option value="Product">Product</option>
+              <option value="Company">Company</option>
+              <option value="Category">Category</option>
+              <option value="Settings">Settings</option>
+              <option value="Security">Security</option>
+              <option value="System">System</option>
+            </select>
+          </div>
+
+          {/* Date Filter (Start) */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date</label>
+            <input
+              type="date"
+              className="glass-input-no-icon w-full py-1.5 text-sm"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          {/* Date Filter (End) */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End Date</label>
+            <input
+              type="date"
+              className="glass-input-no-icon w-full py-1.5 text-sm"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Quick Date Shifts */}
+        <div className="flex items-center justify-between border-t border-slate-100 pt-3 flex-wrap gap-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleShiftDate(-1)}
+              className="btn-secondary py-1.5 px-3 flex items-center gap-1 hover:bg-slate-100 text-xs font-semibold"
+            >
+              &larr; Previous Day
+            </button>
+            <button
+              onClick={() => handleShiftDate(1)}
+              className="btn-secondary py-1.5 px-3 flex items-center gap-1 hover:bg-slate-100 text-xs font-semibold"
+            >
+              Next Day &rarr;
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+            }}
+            className="text-xs text-slate-500 hover:text-primary-600 transition-colors font-semibold"
+          >
+            Clear Date Filters (Show All)
+          </button>
+        </div>
       </div>
 
-      {/* Table View */}
+      {/* Main View Display */}
       {loading ? (
         <div className="flex h-[30vh] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-primary-600"></div>
         </div>
       ) : (
-        <div className="glass-panel overflow-hidden border border-slate-200/60 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
-              <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/50">
-                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Timestamp</th>
-                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Operator</th>
-                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Category</th>
-                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Action Type</th>
-                  <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Action Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredActivities.length > 0 ? (
-                  filteredActivities.map((act) => {
-                    const category = getActivityCategory(act.action);
-                    const catStyles = getCategoryStyles(category);
-                    const actStyles = getActionStyles(act.action) || {};
-                    const linkInfo = parseActionLink(act);
-                    const Icon = actStyles.icon || UserCheck;
-
-                    return (
-                      <tr key={act._id || Math.random().toString()} className="hover:bg-slate-50/60 transition-colors">
-                        {/* Timestamp */}
-                        <td className="py-4 px-4 text-slate-500 font-mono whitespace-nowrap">
-                          {formatTimestamp(act.timestamp)}
-                        </td>
-
-                        {/* Operator */}
-                        <td className="py-4 px-4">
-                          <span className="inline-block px-2 py-1 uppercase rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/50">
-                            {act.user}
-                          </span>
-                        </td>
-
-                        {/* Category */}
-                        <td className="py-4 px-4 whitespace-nowrap">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold border ${catStyles}`}>
-                            {category}
-                          </span>
-                        </td>
-
-                        {/* Action Type */}
-                        <td className="py-4 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                            <span className={`rounded p-1 ${actStyles.color || 'text-slate-600 bg-slate-50 border-slate-100'}`}>
-                              <Icon size={12} />
-                            </span>
-                            <span>{act.action}</span>
-                          </div>
-                        </td>
-
-                        {/* Action Details */}
-                        <td className="py-4 px-4">
-                          <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
-                            <span className="text-slate-600 break-words max-w-xl">{act.description}</span>
-                            {linkInfo && (
-                              <Link 
-                                to={linkInfo.to}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-primary-50 text-primary-700 border border-primary-100 hover:bg-primary-100 hover:text-primary-800 transition-all shrink-0 cursor-pointer shadow-sm"
-                              >
-                                <span>{linkInfo.label}</span>
-                                <ExternalLink size={12} />
-                              </Link>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="py-8 text-center text-slate-400">
-                      No history logs match search query.
-                    </td>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block glass-panel overflow-hidden border border-slate-200/60 bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200/80 bg-slate-50/50">
+                    <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Timestamp</th>
+                    <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Operator</th>
+                    <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Category</th>
+                    <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Action Type</th>
+                    <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-slate-500 font-sans">Action Details</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredActivities.length > 0 ? (
+                    filteredActivities.map((act) => {
+                      const category = getActivityCategory(act.action);
+                      const catStyles = getCategoryStyles(category);
+                      const actStyles = getActionStyles(act.action) || {};
+                      const linkInfo = parseActionLink(act);
+                      const Icon = actStyles.icon || UserCheck;
+
+                      return (
+                        <tr key={act._id || Math.random().toString()} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-4 px-4 text-slate-500 font-mono whitespace-nowrap">
+                            {formatTimestamp(act.timestamp)}
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="inline-block px-2 py-1 uppercase rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/50">
+                              {act.user}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold border ${catStyles}`}>
+                              {category}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                              <span className={`rounded p-1 ${actStyles.color || 'text-slate-600 bg-slate-50 border-slate-100'}`}>
+                                <Icon size={12} />
+                              </span>
+                              <span>{act.action}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+                              <span className="text-slate-600 break-words max-w-xl">{act.description}</span>
+                              {linkInfo && (
+                                <Link 
+                                  to={linkInfo.to}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-primary-50 text-primary-700 border border-primary-100 hover:bg-primary-100 hover:text-primary-800 transition-all shrink-0 cursor-pointer shadow-sm"
+                                >
+                                  <span>{linkInfo.label}</span>
+                                  <ExternalLink size={12} />
+                                </Link>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="py-8 text-center text-slate-400">
+                        No history logs match search/filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredActivities.length > 0 ? (
+              filteredActivities.map((act) => {
+                const category = getActivityCategory(act.action);
+                const catStyles = getCategoryStyles(category);
+                const actStyles = getActionStyles(act.action) || {};
+                const linkInfo = parseActionLink(act);
+                const Icon = actStyles.icon || UserCheck;
+
+                return (
+                  <div 
+                    key={act._id || Math.random().toString()} 
+                    className="glass-panel p-4 border border-slate-200/60 bg-white space-y-3 shadow-sm"
+                  >
+                    {/* Timestamp & Operator */}
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 font-mono">{formatTimestamp(act.timestamp)}</span>
+                      <span className="inline-block px-2 py-0.5 uppercase rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/50">
+                        {act.user}
+                      </span>
+                    </div>
+
+                    {/* Category & Action Type */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${catStyles}`}>
+                        {category}
+                      </span>
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800 text-sm">
+                        <span className={`rounded p-1 ${actStyles.color || 'text-slate-600 bg-slate-50 border-slate-100'}`}>
+                          <Icon size={12} />
+                        </span>
+                        <span>{act.action}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Details */}
+                    <p className="text-xs text-slate-600 break-words leading-relaxed">{act.description}</p>
+
+                    {/* Secure Direct Link */}
+                    {linkInfo && (
+                      <div className="pt-2 border-t border-slate-100 flex justify-end">
+                        <Link 
+                          to={linkInfo.to}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded bg-primary-50 text-primary-700 border border-primary-100 hover:bg-primary-100 hover:text-primary-800 transition-all shadow-sm"
+                        >
+                          <span>{linkInfo.label}</span>
+                          <ExternalLink size={12} />
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="glass-panel p-6 text-center text-slate-400 text-sm bg-white border border-slate-200/60">
+                No history logs match search/filters.
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
