@@ -3,8 +3,8 @@ import Transaction from '../models/Transaction.js';
 import jwt from 'jsonwebtoken';
 import { logActivity } from './activityController.js';
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id, tokenVersion = 0) => {
+  return jwt.sign({ id, tokenVersion }, process.env.JWT_SECRET, {
     expiresIn: '30d',
   });
 };
@@ -24,7 +24,7 @@ export const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         username: user.username,
-        token: generateToken(user._id),
+        token: generateToken(user._id, user.tokenVersion || 0),
       });
     } else {
       res.status(401).json({ message: 'Invalid username or password' });
@@ -148,6 +148,84 @@ export const deleteUser = async (req, res) => {
     );
 
     res.json({ message: 'User removed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update password of any user by admin
+// @route   PUT /api/auth/users/password
+// @access  Private
+export const updateUserPassword = async (req, res) => {
+  const { userId, newPassword } = req.body;
+
+  if (!userId || !newPassword) {
+    return res.status(400).json({ message: 'User ID and new password are required' });
+  }
+
+  try {
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    targetUser.password = newPassword;
+    // Force logout from all devices by incrementing token version
+    targetUser.tokenVersion = (targetUser.tokenVersion || 0) + 1;
+    await targetUser.save();
+
+    await logActivity(
+      'Password Changed',
+      `Password updated for operator: "${targetUser.name}" (${targetUser.username})`,
+      req.user.username,
+      { passwordChanged: false },
+      { passwordChanged: true }
+    );
+
+    res.json({ message: `Password for "${targetUser.name}" updated successfully` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Logout current user from all devices (increment token version)
+// @route   PUT /api/auth/logout-self
+// @access  Private
+export const logoutSelfAllDevices = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+    
+    await logActivity(
+      'Security Action', 
+      `User logged out from all devices: "${user.name}" (${user.username})`, 
+      user.username
+    );
+
+    res.json({ message: 'Logged out from all devices successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Logout all users from all devices (increment all token versions)
+// @route   PUT /api/auth/logout-all
+// @access  Private
+export const logoutAllUsersAllDevices = async (req, res) => {
+  try {
+    await User.updateMany({}, { $inc: { tokenVersion: 1 } });
+    
+    await logActivity(
+      'Security Action', 
+      `Logged out ALL users from all devices`, 
+      req.user.username
+    );
+
+    res.json({ message: 'Logged out all users from all devices successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

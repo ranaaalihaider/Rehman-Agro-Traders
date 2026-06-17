@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import API from '../utils/axiosConfig';
 import { AuthContext } from '../context/AuthContext';
-import { Settings, Save, ShieldAlert, CheckCircle, Info, Lock, Users, UserPlus, Trash2, AlertTriangle, Download } from 'lucide-react';
+import { Settings, Save, ShieldAlert, CheckCircle, Info, Lock, Users, UserPlus, Trash2, AlertTriangle, Download, X, Key } from 'lucide-react';
 
 const SettingsPage = () => {
   const { user: currentUser } = useContext(AuthContext);
@@ -37,6 +37,20 @@ const SettingsPage = () => {
 
   // PWA state
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  // New session states
+  const [showConfirmLogoutSelf, setShowConfirmLogoutSelf] = useState(false);
+  const [showConfirmLogoutAll, setShowConfirmLogoutAll] = useState(false);
+  const [loggingOutSelf, setLoggingOutSelf] = useState(false);
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
+
+  // Password reset modal states for operators
+  const [selectedPassUser, setSelectedPassUser] = useState(null);
+  const [modalNewPass, setModalNewPass] = useState('');
+  const [modalConfirmPass, setModalConfirmPass] = useState('');
+  const [modalSavingPass, setModalSavingPass] = useState(false);
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -144,6 +158,94 @@ const SettingsPage = () => {
       setPassError(err.response?.data?.message || 'Failed to update password');
     } finally {
       setSavingPass(false);
+    }
+  };
+
+  const handleLogoutSelf = async () => {
+    setPassError('');
+    setPassSuccess('');
+    setLoggingOutSelf(true);
+    try {
+      await API.put('/auth/logout-self');
+      setPassSuccess('Logged out from all devices successfully! Redirecting...');
+      setShowConfirmLogoutSelf(false);
+      setTimeout(() => {
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login';
+      }, 1500);
+    } catch (err) {
+      setPassError(err.response?.data?.message || 'Failed to logout from all devices');
+      setShowConfirmLogoutSelf(false);
+    } finally {
+      setLoggingOutSelf(false);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    setPassError('');
+    setPassSuccess('');
+    setLoggingOutAll(true);
+    try {
+      await API.put('/auth/logout-all');
+      setPassSuccess('All operators logged out from all devices! Redirecting...');
+      setShowConfirmLogoutAll(false);
+      setTimeout(() => {
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login';
+      }, 1500);
+    } catch (err) {
+      setPassError(err.response?.data?.message || 'Failed to force logout all users');
+      setShowConfirmLogoutAll(false);
+    } finally {
+      setLoggingOutAll(false);
+    }
+  };
+
+  const handleModalSavePassword = async (e) => {
+    e.preventDefault();
+    setModalError('');
+    setModalSuccess('');
+
+    if (!modalNewPass || !modalConfirmPass) {
+      setModalError('Both password fields are required');
+      return;
+    }
+
+    if (modalNewPass !== modalConfirmPass) {
+      setModalError('Passwords do not match');
+      return;
+    }
+
+    if (modalNewPass.length < 6) {
+      setModalError('Password must be at least 6 characters long');
+      return;
+    }
+
+    setModalSavingPass(true);
+    try {
+      const { data } = await API.put('/auth/users/password', {
+        userId: selectedPassUser._id,
+        newPassword: modalNewPass
+      });
+      setModalSuccess(data.message || 'Password changed successfully!');
+      setModalNewPass('');
+      setModalConfirmPass('');
+      
+      if (selectedPassUser.username === currentUser.username) {
+        setTimeout(() => {
+          localStorage.removeItem('userInfo');
+          window.location.href = '/login';
+        }, 1500);
+      } else {
+        setTimeout(() => {
+          setSelectedPassUser(null);
+          setModalSuccess('');
+        }, 2000);
+      }
+    } catch (err) {
+      setModalError(err.response?.data?.message || 'Failed to update user password');
+    } finally {
+      setModalSavingPass(false);
     }
   };
 
@@ -359,6 +461,80 @@ const SettingsPage = () => {
               {savingPass ? 'Modifying security...' : 'Change Password'}
             </button>
           </form>
+
+          {/* Device Session Control */}
+          <div className="border-t border-slate-100 pt-4 mt-6 space-y-4">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <ShieldAlert size={14} className="text-red-650 text-red-600" /> Session & Device Management
+            </h4>
+            
+            <div className="space-y-3">
+              {showConfirmLogoutSelf ? (
+                <div className="rounded-xl bg-orange-50 border border-orange-200 p-3 text-xs space-y-2 animate-fadeIn">
+                  <p className="text-orange-800 font-medium">Are you sure you want to log out from all devices? You will be logged out of this session as well.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleLogoutSelf}
+                      disabled={loggingOutSelf}
+                      className="px-3 py-1.5 rounded bg-orange-600 hover:bg-orange-700 text-white font-semibold text-[11px]"
+                    >
+                      {loggingOutSelf ? 'Logging out...' : 'Yes, Log Out'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmLogoutSelf(false)}
+                      className="px-3 py-1.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold text-[11px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmLogoutSelf(true)}
+                  className="w-full btn-secondary text-red-600 hover:text-red-700 border-red-200/50 hover:bg-red-50 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5"
+                >
+                  Logout Current User from All Devices
+                </button>
+              )}
+
+              {showConfirmLogoutAll ? (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs space-y-2 animate-fadeIn">
+                  <p className="text-red-800 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <AlertTriangle size={14} className="text-red-600" /> Critical Action
+                  </p>
+                  <p className="text-red-700 font-medium">This will immediately invalidate all operators' login sessions on all devices. Everyone will need to log back in.</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleLogoutAll}
+                      disabled={loggingOutAll}
+                      className="px-3 py-1.5 rounded bg-red-600 hover:bg-red-700 text-white font-semibold text-[11px]"
+                    >
+                      {loggingOutAll ? 'Invalidating...' : 'Confirm Force Logout All'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmLogoutAll(false)}
+                      className="px-3 py-1.5 rounded bg-white border border-slate-200 text-slate-600 font-semibold text-[11px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmLogoutAll(true)}
+                  className="w-full btn-danger py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Logout All Users from All Devices
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -455,42 +631,144 @@ const SettingsPage = () => {
                   </div>
                   
                   {/* Operations Column */}
-                  {currentUser?.username === u.username ? (
-                    <span className="text-[10px] font-bold uppercase text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-100">
-                      Logged In
-                    </span>
-                  ) : deleteConfirmUserId === u._id ? (
-                    <div className="flex items-center gap-1.5 animate-fadeIn bg-orange-50 border border-orange-200 px-2 py-1 rounded-lg">
-                      <AlertTriangle size={13} className="text-orange-600" />
-                      <span className="text-[9px] text-orange-700 font-semibold">Checks invoices. Delete?</span>
-                      <button
-                        onClick={() => handleDeleteUser(u._id)}
-                        className="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmUserId(null)}
-                        className="bg-white border border-slate-200 text-slate-500 font-bold text-[9px] px-2 py-0.5 rounded"
-                      >
-                        No
-                      </button>
-                    </div>
-                  ) : (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setDeleteConfirmUserId(u._id)}
-                      className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                      title="Remove Operator"
+                      onClick={() => {
+                        setSelectedPassUser(u);
+                        setModalError('');
+                        setModalSuccess('');
+                      }}
+                      className="rounded p-1 text-slate-400 hover:text-primary-750 hover:bg-slate-100 transition-colors"
+                      title="Update Password"
                     >
-                      <Trash2 size={15} />
+                      <Key size={14} />
                     </button>
-                  )}
+
+                    {currentUser?.username === u.username ? (
+                      <span className="text-[9px] font-bold uppercase text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100">
+                        Me
+                      </span>
+                    ) : deleteConfirmUserId === u._id ? (
+                      <div className="flex items-center gap-1.5 animate-fadeIn bg-orange-50 border border-orange-200 px-2 py-1 rounded-lg">
+                        <AlertTriangle size={13} className="text-orange-600" />
+                        <span className="text-[9px] text-orange-700 font-semibold">Checks invoices. Delete?</span>
+                        <button
+                          onClick={() => handleDeleteUser(u._id)}
+                          className="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmUserId(null)}
+                          className="bg-white border border-slate-200 text-slate-500 font-bold text-[9px] px-2 py-0.5 rounded"
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmUserId(u._id)}
+                        className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        title="Remove Operator"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Password Reset Modal Overlay */}
+      {selectedPassUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-scaleUp">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-800 text-[15px] flex items-center gap-1.5">
+                <Lock size={16} className="text-primary-700" />
+                Change Password: {selectedPassUser.name}
+              </h3>
+              <button
+                onClick={() => setSelectedPassUser(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
+                {modalError}
+              </div>
+            )}
+            {modalSuccess && (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-700">
+                {modalSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleModalSavePassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  className="glass-input-no-icon w-full text-sm"
+                  placeholder="At least 6 characters"
+                  value={modalNewPass}
+                  onChange={(e) => setModalNewPass(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  className="glass-input-no-icon w-full text-sm"
+                  placeholder="Retype password"
+                  value={modalConfirmPass}
+                  onChange={(e) => setModalConfirmPass(e.target.value)}
+                />
+              </div>
+
+              <div className="rounded-xl bg-slate-50 border border-slate-200/60 p-3 text-[11px] text-slate-500 flex gap-2">
+                <Info size={14} className="text-slate-400 shrink-0" />
+                <span>
+                  {selectedPassUser.username === currentUser.username 
+                    ? "Changing your own password will require you to log back in immediately." 
+                    : "This will update the operator's password and terminate their active sessions on other devices."}
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={modalSavingPass}
+                  className="btn-primary py-2 px-4 text-xs font-semibold bg-primary-700 hover:bg-primary-850"
+                >
+                  {modalSavingPass ? 'Saving...' : 'Update Password'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPassUser(null)}
+                  className="btn-secondary py-2 px-4 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* PWA Install Banner */}
       {deferredPrompt && (

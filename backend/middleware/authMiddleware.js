@@ -17,6 +17,11 @@ const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'User not found, unauthorized' });
       }
       
+      // Verify that tokenVersion inside decoded token matches user's current database tokenVersion
+      if (decoded.tokenVersion !== undefined && req.user.tokenVersion !== decoded.tokenVersion) {
+        return res.status(401).json({ message: 'Session invalidated, please log in again' });
+      }
+      
       return next();
     } catch (error) {
       console.error(error);
