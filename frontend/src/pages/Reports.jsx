@@ -39,7 +39,7 @@ const Reports = () => {
   const [endDate, setEndDate] = useState(() => getPakistanDateString());
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
-  const [groupBy, setGroupBy] = useState('company'); // 'company' or 'category'
+  const [groupBy, setGroupBy] = useState('category'); // 'company' or 'category'
   const [showOpeningData, setShowOpeningData] = useState(true); // Toggle to show/hide opening data
 
   useEffect(() => {

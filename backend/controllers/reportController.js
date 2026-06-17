@@ -206,33 +206,8 @@ export const getDateWiseStockReport = async (req, res) => {
       });
     }
 
-    // 5. Group item data dynamically by category or company
-    if (groupBy === 'category') {
-      const categoryGroupMap = {};
-      itemDataList.forEach((itemData) => {
-        const catName = itemData.categoryName;
-        if (!categoryGroupMap[catName]) {
-          categoryGroupMap[catName] = {
-            categoryId: itemData.categoryId,
-            categoryName: catName,
-            items: [],
-          };
-        }
-        categoryGroupMap[catName].items.push({
-          itemId: itemData.itemId,
-          itemName: itemData.itemName,
-          unit: itemData.unit,
-          companyName: itemData.companyName, // expose company to frontend
-          openingStock: itemData.openingStock,
-          closingStock: itemData.closingStock,
-          totalStockIn: itemData.totalStockIn,
-          totalStockOut: itemData.totalStockOut,
-          history: itemData.history,
-        });
-      });
-      const groupedReport = Object.values(categoryGroupMap).sort((a, b) => a.categoryName.localeCompare(b.categoryName));
-      res.json(groupedReport);
-    } else {
+    // 5. Group item data dynamically by category or company (default to category)
+    if (groupBy === 'company') {
       const companyGroupMap = {};
       itemDataList.forEach((itemData) => {
         const cName = itemData.companyName;
@@ -256,6 +231,31 @@ export const getDateWiseStockReport = async (req, res) => {
         });
       });
       const groupedReport = Object.values(companyGroupMap).sort((a, b) => a.companyName.localeCompare(b.companyName));
+      res.json(groupedReport);
+    } else {
+      const categoryGroupMap = {};
+      itemDataList.forEach((itemData) => {
+        const catName = itemData.categoryName;
+        if (!categoryGroupMap[catName]) {
+          categoryGroupMap[catName] = {
+            categoryId: itemData.categoryId,
+            categoryName: catName,
+            items: [],
+          };
+        }
+        categoryGroupMap[catName].items.push({
+          itemId: itemData.itemId,
+          itemName: itemData.itemName,
+          unit: itemData.unit,
+          companyName: itemData.companyName, // expose company to frontend
+          openingStock: itemData.openingStock,
+          closingStock: itemData.closingStock,
+          totalStockIn: itemData.totalStockIn,
+          totalStockOut: itemData.totalStockOut,
+          history: itemData.history,
+        });
+      });
+      const groupedReport = Object.values(categoryGroupMap).sort((a, b) => a.categoryName.localeCompare(b.categoryName));
       res.json(groupedReport);
     }
   } catch (error) {
