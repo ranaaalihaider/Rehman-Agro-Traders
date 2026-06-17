@@ -1,4 +1,5 @@
 import Item from '../models/Item.js';
+import Category from '../models/Category.js';
 import Transaction from '../models/Transaction.js';
 import { logActivity } from './activityController.js';
 
@@ -17,11 +18,16 @@ export const getItems = async (req, res) => {
       query.companyId = companyId;
     }
     if (category) {
-      query.category = { $regex: category, $options: 'i' };
+      if (category.match(/^[0-9a-fA-F]{24}$/)) {
+        query.category = category;
+      } else {
+        query.category = category;
+      }
     }
 
     const items = await Item.find(query)
       .populate('companyId', 'companyName')
+      .populate('category', 'name')
       .sort({ itemName: 1 });
 
     res.json(items);
@@ -50,20 +56,30 @@ export const createItem = async (req, res) => {
       return res.status(400).json({ message: 'This item already exists under this company' });
     }
 
+    let finalCategory = category;
+    if (!finalCategory || String(finalCategory).trim() === '') {
+      const defaultCat = await Category.findOne({ name: 'fertilizers' });
+      if (defaultCat) {
+        finalCategory = defaultCat._id;
+      }
+    }
+
     const initialStock = Number(openingStock) || 0;
 
     const item = await Item.create({
       itemName: itemName.trim(),
       companyId,
-      category: category ? category.trim() : '',
+      category: finalCategory,
       unit,
       purchasePrice: Number(purchasePrice) || 0,
       salePrice: Number(salePrice) || 0,
       openingStock: initialStock,
-      quantity: initialStock, // Set current stock same as opening stock initially
+      quantity: initialStock,
     });
 
-    const populatedItem = await Item.findById(item._id).populate('companyId', 'companyName');
+    const populatedItem = await Item.findById(item._id)
+      .populate('companyId', 'companyName')
+      .populate('category', 'name');
     
     await logActivity(
       'Item Created',
@@ -89,7 +105,6 @@ export const updateItem = async (req, res) => {
       return res.status(404).json({ message: 'Item not found' });
     }
 
-    // Uniqueness check for name + company combination
     if (itemName && companyId) {
       const itemExists = await Item.findOne({
         itemName: itemName.trim(),
@@ -101,23 +116,34 @@ export const updateItem = async (req, res) => {
       }
     }
 
+    let finalCategory = category;
+    if (finalCategory === '') {
+      const defaultCat = await Category.findOne({ name: 'fertilizers' });
+      if (defaultCat) {
+        finalCategory = defaultCat._id;
+      }
+    }
+
     const oldOpening = item.openingStock;
     const newOpening = openingStock !== undefined ? Number(openingStock) : oldOpening;
     const diff = newOpening - oldOpening;
 
     item.itemName = itemName !== undefined ? itemName.trim() : item.itemName;
     item.companyId = companyId || item.companyId;
-    item.category = category !== undefined ? category.trim() : item.category;
+    if (finalCategory !== undefined) {
+      item.category = finalCategory;
+    }
     item.unit = unit || item.unit;
     item.purchasePrice = purchasePrice !== undefined ? Number(purchasePrice) : item.purchasePrice;
     item.salePrice = salePrice !== undefined ? Number(salePrice) : item.salePrice;
     item.openingStock = newOpening;
     
-    // Adjust quantity based on change in opening stock
     item.quantity += diff;
 
     const updatedItem = await item.save();
-    const populatedItem = await Item.findById(updatedItem._id).populate('companyId', 'companyName');
+    const populatedItem = await Item.findById(updatedItem._id)
+      .populate('companyId', 'companyName')
+      .populate('category', 'name');
 
     await logActivity(
       'Item Updated',

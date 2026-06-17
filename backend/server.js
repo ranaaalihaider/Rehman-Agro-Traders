@@ -5,6 +5,7 @@ import connectDB from './config/db.js';
 
 // Import Routes
 import authRoutes from './routes/authRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
 import companyRoutes from './routes/companyRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
@@ -15,6 +16,8 @@ import settingsRoutes from './routes/settingsRoutes.js';
 // Import Models for Seeding
 import User from './models/User.js';
 import Business from './models/Business.js';
+import Category from './models/Category.js';
+import Item from './models/Item.js';
 
 dotenv.config();
 
@@ -29,6 +32,7 @@ app.use(express.json());
 
 // Routes mapping
 app.use('/api/auth', authRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/transactions', transactionRoutes);
@@ -69,6 +73,41 @@ const seedDefaults = async () => {
         address: 'Chichawatni, Punjab, Pakistan',
       });
       console.log('Default business details seeded.');
+    }
+
+    // 3. Seed default Category 'fertilizers' if not exists
+    let defaultCategory = await Category.findOne({ name: 'fertilizers' });
+    if (!defaultCategory) {
+      defaultCategory = await Category.create({ name: 'fertilizers' });
+      console.log('Default fertilizers category seeded.');
+    }
+
+    // 4. Data Migration: Update existing items to Category ObjectId reference
+    const itemsToUpdate = await Item.find({
+      $or: [
+        { category: { $exists: false } },
+        { category: null },
+        { category: { $type: 'string' } }
+      ]
+    });
+
+    if (itemsToUpdate.length > 0) {
+      console.log(`Migrating ${itemsToUpdate.length} items to new category system...`);
+      for (let item of itemsToUpdate) {
+        let categoryName = 'fertilizers';
+        if (item.category && typeof item.category === 'string' && item.category.trim() !== '') {
+          categoryName = item.category.trim();
+        }
+
+        let cat = await Category.findOne({ name: { $regex: new RegExp(`^${categoryName}$`, 'i') } });
+        if (!cat) {
+          cat = await Category.create({ name: categoryName.toLowerCase() });
+          console.log(`Seeded category from legacy item value: ${categoryName}`);
+        }
+        item.category = cat._id;
+        await item.save();
+      }
+      console.log('Migration completed successfully.');
     }
   } catch (error) {
     console.error('Error seeding defaults:', error);

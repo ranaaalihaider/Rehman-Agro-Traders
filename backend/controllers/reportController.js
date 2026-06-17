@@ -82,7 +82,7 @@ export const getDashboardStats = async (req, res) => {
 // @route   GET /api/reports/date-wise
 // @access  Private
 export const getDateWiseStockReport = async (req, res) => {
-  const { startDate, endDate, itemId, companyId } = req.query;
+  const { startDate, endDate, itemId, companyId, groupBy } = req.query;
 
   if (!startDate || !endDate) {
     return res.status(400).json({ message: 'Start date and End date are required' });
@@ -102,7 +102,9 @@ export const getDateWiseStockReport = async (req, res) => {
     if (companyId) {
       itemQuery.companyId = companyId;
     }
-    const items = await Item.find(itemQuery).populate('companyId', 'companyName');
+    const items = await Item.find(itemQuery)
+      .populate('companyId', 'companyName')
+      .populate('category', 'name');
 
     if (items.length === 0) {
       return res.json([]);
@@ -129,7 +131,6 @@ export const getDateWiseStockReport = async (req, res) => {
       let currentOpening = item.openingStock;
 
       // Calculate the opening stock at the start of our range
-      // We do this by summing all transactions for this item before dayStart of the first date
       transactions.forEach((tx) => {
         if (new Date(tx.date) < start) {
           tx.items.forEach((txItem) => {
@@ -195,6 +196,8 @@ export const getDateWiseStockReport = async (req, res) => {
         unit: item.unit || 'Bag',
         companyId: item.companyId?._id || '',
         companyName: item.companyId?.companyName || 'Unknown Company',
+        categoryId: item.category?._id || '',
+        categoryName: item.category?.name || 'Uncategorized',
         openingStock: currentOpening,
         closingStock: runningStock,
         totalStockIn,
@@ -203,31 +206,58 @@ export const getDateWiseStockReport = async (req, res) => {
       });
     }
 
-    // 5. Group item data by company
-    const companyGroupMap = {};
-    itemDataList.forEach((itemData) => {
-      const cName = itemData.companyName;
-      if (!companyGroupMap[cName]) {
-        companyGroupMap[cName] = {
-          companyId: itemData.companyId,
-          companyName: cName,
-          items: [],
-        };
-      }
-      companyGroupMap[cName].items.push({
-        itemId: itemData.itemId,
-        itemName: itemData.itemName,
-        unit: itemData.unit,
-        openingStock: itemData.openingStock,
-        closingStock: itemData.closingStock,
-        totalStockIn: itemData.totalStockIn,
-        totalStockOut: itemData.totalStockOut,
-        history: itemData.history,
+    // 5. Group item data dynamically by category or company
+    if (groupBy === 'category') {
+      const categoryGroupMap = {};
+      itemDataList.forEach((itemData) => {
+        const catName = itemData.categoryName;
+        if (!categoryGroupMap[catName]) {
+          categoryGroupMap[catName] = {
+            categoryId: itemData.categoryId,
+            categoryName: catName,
+            items: [],
+          };
+        }
+        categoryGroupMap[catName].items.push({
+          itemId: itemData.itemId,
+          itemName: itemData.itemName,
+          unit: itemData.unit,
+          companyName: itemData.companyName, // expose company to frontend
+          openingStock: itemData.openingStock,
+          closingStock: itemData.closingStock,
+          totalStockIn: itemData.totalStockIn,
+          totalStockOut: itemData.totalStockOut,
+          history: itemData.history,
+        });
       });
-    });
-
-    const groupedReport = Object.values(companyGroupMap);
-    res.json(groupedReport);
+      const groupedReport = Object.values(categoryGroupMap).sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+      res.json(groupedReport);
+    } else {
+      const companyGroupMap = {};
+      itemDataList.forEach((itemData) => {
+        const cName = itemData.companyName;
+        if (!companyGroupMap[cName]) {
+          companyGroupMap[cName] = {
+            companyId: itemData.companyId,
+            companyName: cName,
+            items: [],
+          };
+        }
+        companyGroupMap[cName].items.push({
+          itemId: itemData.itemId,
+          itemName: itemData.itemName,
+          unit: itemData.unit,
+          companyName: itemData.companyName,
+          openingStock: itemData.openingStock,
+          closingStock: itemData.closingStock,
+          totalStockIn: itemData.totalStockIn,
+          totalStockOut: itemData.totalStockOut,
+          history: itemData.history,
+        });
+      });
+      const groupedReport = Object.values(companyGroupMap).sort((a, b) => a.companyName.localeCompare(b.companyName));
+      res.json(groupedReport);
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

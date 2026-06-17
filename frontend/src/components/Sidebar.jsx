@@ -16,7 +16,8 @@ import {
   LogOut,
   Menu,
   X,
-  Sprout
+  Sprout,
+  Tags
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -41,6 +42,7 @@ const Sidebar = () => {
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Companies', path: '/companies', icon: Building2 },
+    { name: 'Categories', path: '/categories', icon: Tags },
     { name: 'Items', path: '/items', icon: Layers },
     { name: 'Stock In', path: '/stock-in', icon: ArrowDownLeft },
     { name: 'Stock Out', path: '/stock-out', icon: ArrowUpRight },

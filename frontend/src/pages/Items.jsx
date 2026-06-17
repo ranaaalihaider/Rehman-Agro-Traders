@@ -5,6 +5,7 @@ import { Search, Plus, Edit2, Trash2, X, AlertTriangle, Layers, Filter } from 'l
 const Items = () => {
   const [items, setItems] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -33,12 +34,14 @@ const Items = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [itemsRes, companiesRes] = await Promise.all([
+      const [itemsRes, companiesRes, categoriesRes] = await Promise.all([
         API.get(`/items?search=${search}&companyId=${companyFilter}&category=${categoryFilter}`),
         API.get('/companies'),
+        API.get('/categories'),
       ]);
       setItems(itemsRes.data);
       setCompanies(companiesRes.data);
+      setCategories(categoriesRes.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load data');
     } finally {
@@ -57,7 +60,11 @@ const Items = () => {
     setEditId(null);
     setItemName('');
     setCompanyId(companies[0]?._id || '');
-    setCategory('');
+    
+    // Find default fertilizers category
+    const defaultCat = categories.find((c) => c.name.toLowerCase() === 'fertilizers');
+    setCategory(defaultCat?._id || categories[0]?._id || '');
+
     setUnit('Bag');
     setPurchasePrice('');
     setSalePrice('');
@@ -71,7 +78,7 @@ const Items = () => {
     setEditId(item._id);
     setItemName(item.itemName);
     setCompanyId(item.companyId?._id || item.companyId || '');
-    setCategory(item.category || '');
+    setCategory(item.category?._id || item.category || '');
     setUnit(item.unit || 'Bag');
     setPurchasePrice(item.purchasePrice);
     setSalePrice(item.salePrice);
@@ -86,8 +93,8 @@ const Items = () => {
     setError('');
     setSuccess('');
 
-    if (!itemName.trim() || !companyId || !unit) {
-      setError('Item name, Company, and Unit are required');
+    if (!itemName.trim() || !companyId || !unit || !category) {
+      setError('Item name, Company, Category, and Unit are required');
       return;
     }
 
@@ -213,15 +220,19 @@ const Items = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Category (Optional)
+                    Category
                   </label>
-                  <input
-                    type="text"
-                    className="glass-input-no-icon w-full"
-                    placeholder="e.g. Fertilizer, Seed"
+                  <select
+                    required
+                    className="glass-select w-full"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                  />
+                  >
+                    <option value="" disabled>Select Category</option>
+                    {categories.map((cat) => (
+                      <option key={cat._id} value={cat._id}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -318,13 +329,16 @@ const Items = () => {
             ))}
           </select>
 
-          <input
-            type="text"
-            className="glass-input-no-icon py-1 px-3 text-xs w-36"
-            placeholder="Filter by Category"
+          <select
+            className="glass-select py-1 px-3 text-xs w-36"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-          />
+          >
+            <option value="">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id}>{cat.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -361,7 +375,7 @@ const Items = () => {
                           {item.companyId?.companyName || 'N/A'}
                         </td>
                         <td className="px-6 py-3.5 text-slate-400 capitalize">
-                          {item.category || '—'}
+                          {item.category?.name || '—'}
                         </td>
                         <td className="px-6 py-3.5">
                           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
@@ -448,14 +462,14 @@ const Items = () => {
                   className="glass-panel p-4 border border-slate-200/50 bg-white space-y-3 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   <div className="flex justify-between items-start">
-                    <div>
+                     <div>
                       <h4 className="font-bold text-slate-800 text-[15px]">{item.itemName}</h4>
                       <p className="text-xs text-slate-500 font-medium">{item.companyId?.companyName || 'N/A'}</p>
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
                       {item.category && (
                         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-medium text-slate-600 capitalize">
-                          {item.category}
+                          {item.category?.name || '—'}
                         </span>
                       )}
                       <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[9px] font-semibold text-primary-700">

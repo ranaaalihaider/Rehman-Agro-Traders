@@ -8,6 +8,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
+import Categories from './pages/Categories';
 import Items from './pages/Items';
 import StockIn from './pages/StockIn';
 import StockOut from './pages/StockOut';
@@ -43,6 +44,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Companies />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/categories"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Categories />
                 </Layout>
               </ProtectedRoute>
             }

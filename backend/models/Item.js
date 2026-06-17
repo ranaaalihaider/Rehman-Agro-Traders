@@ -13,9 +13,9 @@ const itemSchema = new mongoose.Schema(
       required: true,
     },
     category: {
-      type: String,
-      trim: true,
-      default: '',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      required: false,
     },
     unit: {
       type: String,

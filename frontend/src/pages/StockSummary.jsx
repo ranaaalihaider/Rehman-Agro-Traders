@@ -204,7 +204,7 @@ const StockSummary = () => {
                             {item.companyId?.companyName || 'N/A'}
                           </td>
                           <td className="px-6 py-3.5 text-slate-400 capitalize">
-                            {item.category || '—'}
+                            {item.category?.name || '—'}
                           </td>
                           <td className="px-6 py-3.5">
                             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
@@ -263,7 +263,7 @@ const StockSummary = () => {
                       <div className="flex gap-1.5 flex-wrap">
                         {item.category && (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-medium text-slate-600 capitalize">
-                            {item.category}
+                            {item.category?.name || '—'}
                           </span>
                         )}
                         <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[9px] font-semibold text-primary-700">

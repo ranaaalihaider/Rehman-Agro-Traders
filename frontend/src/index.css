@@ -54,7 +54,7 @@ body {
   body {
     background-color: white !important;
     color: black !important;
-    font-size: 12px;
+    font-size: 10px;
   }
   .print-hide {
     display: none !important;
@@ -69,6 +69,61 @@ body {
     padding: 0;
     border: none !important;
     box-shadow: none !important;
+  }
+  /* Industry standard tight layout for print reports */
+  .print-area {
+    font-size: 9px !important;
+    line-height: 1.15 !important;
+    padding: 10px !important;
+  }
+  .print-area h1 {
+    font-size: 16px !important;
+    margin-bottom: 2px !important;
+  }
+  .print-area h2 {
+    font-size: 11px !important;
+    margin-top: 8px !important;
+    margin-bottom: 3px !important;
+    padding-bottom: 1px !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+  .print-area h3 {
+    font-size: 9px !important;
+    margin-top: 6px !important;
+    margin-bottom: 2px !important;
+  }
+  .print-area table {
+    width: 100% !important;
+    margin-top: 2px !important;
+    margin-bottom: 6px !important;
+  }
+  .print-area table th,
+  .print-area table td {
+    padding: 2px 4px !important;
+    font-size: 8px !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+  .print-area .group-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .print-area .item-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 6px !important;
+  }
+  .print-area .print-header {
+    margin-bottom: 6px !important;
+    padding-bottom: 4px !important;
+  }
+  .print-area .metadata-section {
+    margin-top: 4px !important;
+    margin-bottom: 6px !important;
+    padding-bottom: 4px !important;
+  }
+  .print-area .summary-cards {
+    margin-bottom: 8px !important;
+    padding: 6px !important;
   }
   /* Ensure background-colors print correctly in chrome/safari */
   * {
