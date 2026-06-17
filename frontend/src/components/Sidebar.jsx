@@ -103,7 +103,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Mobile Top Bar (print:hidden) */}
-      <div className="flex h-16 items-center justify-between border-b border-slate-200/80 bg-white px-4 md:hidden print-hide">
+      <div className="flex h-auto min-h-[4rem] items-center justify-between border-b border-slate-200/80 bg-white px-4 pt-safe pb-3 md:hidden print-hide">
         <div className="flex items-center gap-2">
           <div className="rounded-lg bg-primary-700 p-2 text-white">
             <Sprout size={20} />
