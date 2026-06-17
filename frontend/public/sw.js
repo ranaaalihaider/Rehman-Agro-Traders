@@ -1,9 +1,11 @@
-const CACHE_NAME = 'agro-stock-v1';
+const CACHE_NAME = 'agro-stock-v2';
 const ASSETS = [
   '/',
   '/index.html',
   '/favicon.svg',
-  '/icons.svg'
+  '/icons.svg',
+  '/app_icon.png',
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (e) => {
