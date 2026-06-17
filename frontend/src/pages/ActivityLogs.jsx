@@ -15,6 +15,150 @@ import {
   Lock
 } from 'lucide-react';
 
+// Pure helper functions placed outside the component to guarantee clean hoisting and avoid Temporal Dead Zone (TDZ)
+const getActivityCategory = (action) => {
+  if (!action) return 'System';
+  const act = String(action).toLowerCase();
+  if (act.includes('invoice')) return 'Invoice';
+  if (act.includes('item') || act.includes('product')) return 'Product';
+  if (act.includes('company')) return 'Company';
+  if (act.includes('category')) return 'Category';
+  if (act.includes('settings')) return 'Settings';
+  if (act.includes('login') || act.includes('password')) return 'Security';
+  return 'System';
+};
+
+const getCategoryStyles = (category) => {
+  switch (category) {
+    case 'Invoice':
+      return 'bg-blue-50 text-blue-700 border-blue-200/60';
+    case 'Product':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
+    case 'Company':
+      return 'bg-indigo-50 text-indigo-700 border-indigo-200/60';
+    case 'Category':
+      return 'bg-purple-50 text-purple-700 border-purple-200/60';
+    case 'Settings':
+      return 'bg-amber-50 text-amber-700 border-amber-200/60';
+    case 'Security':
+      return 'bg-red-50 text-red-700 border-red-200/60';
+    default:
+      return 'bg-slate-50 text-slate-700 border-slate-200/60';
+  }
+};
+
+const getActionStyles = (action) => {
+  const defaultStyle = { icon: UserCheck, color: 'text-slate-600 bg-slate-50 border-slate-100' };
+  if (!action) return defaultStyle;
+  try {
+    const act = String(action).toLowerCase();
+    if (act.includes('created') || act.includes('add') || act.includes('seed')) {
+      return { icon: PlusCircle, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
+    }
+    if (act.includes('edit') || act.includes('update') || act.includes('changed') || act.includes('modify')) {
+      return { icon: Edit3, color: 'text-indigo-700 bg-indigo-50 border-indigo-100' };
+    }
+    if (act.includes('delete') || act.includes('remove')) {
+      return { icon: Trash2, color: 'text-red-700 bg-red-50 border-red-100' };
+    }
+    if (act.includes('settings')) {
+      return { icon: Settings, color: 'text-amber-700 bg-amber-50 border-amber-100' };
+    }
+    if (act.includes('login') || act.includes('password')) {
+      return { icon: Lock, color: 'text-rose-700 bg-rose-50 border-rose-100' };
+    }
+    return defaultStyle;
+  } catch (e) {
+    console.error(e);
+    return defaultStyle;
+  }
+};
+
+const parseActionLink = (act) => {
+  try {
+    if (!act || !act.action || !act.description) return null;
+    const action = String(act.action).toLowerCase();
+    const description = String(act.description);
+
+    // Deletes cannot link to anything as the entity is gone
+    if (action.includes('delete') || action.includes('remove')) {
+      return null;
+    }
+
+    if (action.includes('invoice')) {
+      const match = description.match(/Invoice\s*#:\s*([^\s,]+)/i);
+      if (match && match[1]) {
+        return {
+          to: `/invoices?search=${encodeURIComponent(match[1].trim())}`,
+          label: 'View Slip',
+        };
+      }
+    }
+
+    if (action.includes('item')) {
+      const match = description.match(/item\s*"([^"]+)"/i);
+      if (match && match[1]) {
+        return {
+          to: `/items?search=${encodeURIComponent(match[1].trim())}`,
+          label: 'View Product',
+        };
+      }
+    }
+
+    if (action.includes('company')) {
+      let match = description.match(/company:\s*([^\n,.]+)/i);
+      if (!match) {
+        match = description.match(/to\s*"([^"]+)"/i);
+      }
+      if (match && match[1]) {
+        const name = match[1].replace(/"/g, '').trim();
+        return {
+          to: `/companies?search=${encodeURIComponent(name)}`,
+          label: 'View Company',
+        };
+      }
+    }
+
+    if (action.includes('category')) {
+      let match = description.match(/category:\s*([^\n,.]+)/i);
+      if (!match) {
+        match = description.match(/to\s*"([^"]+)"/i);
+      }
+      if (match && match[1]) {
+        const name = match[1].replace(/"/g, '').trim();
+        return {
+          to: `/categories?search=${encodeURIComponent(name)}`,
+          label: 'View Category',
+        };
+      }
+    }
+
+    if (action.includes('settings')) {
+      return {
+        to: '/settings',
+        label: 'View Settings',
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('Failed to parse log redirection:', e);
+    return null;
+  }
+};
+
+const formatTimestamp = (ts) => {
+  try {
+    if (!ts) return 'N/A';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) {
+      return 'N/A';
+    }
+    return `${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+  } catch (e) {
+    return 'N/A';
+  }
+};
+
 const ActivityLogs = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,153 +202,6 @@ const ActivityLogs = () => {
       actCat.includes(term)
     );
   });
-
-  // Helper to categorize log action types
-  const getActivityCategory = (action) => {
-    if (!action) return 'System';
-    const act = String(action).toLowerCase();
-    if (act.includes('invoice')) return 'Invoice';
-    if (act.includes('item') || act.includes('product')) return 'Product';
-    if (act.includes('company')) return 'Company';
-    if (act.includes('category')) return 'Category';
-    if (act.includes('settings')) return 'Settings';
-    if (act.includes('login') || act.includes('password')) return 'Security';
-    return 'System';
-  };
-
-  // Helper to determine category styling
-  const getCategoryStyles = (category) => {
-    switch (category) {
-      case 'Invoice':
-        return 'bg-blue-50 text-blue-700 border-blue-200/60';
-      case 'Product':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
-      case 'Company':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200/60';
-      case 'Category':
-        return 'bg-purple-50 text-purple-700 border-purple-200/60';
-      case 'Settings':
-        return 'bg-amber-50 text-amber-700 border-amber-200/60';
-      case 'Security':
-        return 'bg-red-50 text-red-700 border-red-200/60';
-      default:
-        return 'bg-slate-50 text-slate-700 border-slate-200/60';
-    }
-  };
-
-  // Helper to determine action icons and colors
-  const getActionStyles = (action) => {
-    const defaultStyle = { icon: UserCheck, color: 'text-slate-600 bg-slate-50 border-slate-100' };
-    if (!action) return defaultStyle;
-    try {
-      const act = String(action).toLowerCase();
-      if (act.includes('created') || act.includes('add') || act.includes('seed')) {
-        return { icon: PlusCircle, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
-      }
-      if (act.includes('edit') || act.includes('update') || act.includes('changed') || act.includes('modify')) {
-        return { icon: Edit3, color: 'text-indigo-700 bg-indigo-50 border-indigo-100' };
-      }
-      if (act.includes('delete') || act.includes('remove')) {
-        return { icon: Trash2, color: 'text-red-700 bg-red-50 border-red-100' };
-      }
-      if (act.includes('settings')) {
-        return { icon: Settings, color: 'text-amber-700 bg-amber-50 border-amber-100' };
-      }
-      if (act.includes('login') || act.includes('password')) {
-        return { icon: Lock, color: 'text-rose-700 bg-rose-50 border-rose-100' };
-      }
-      return defaultStyle;
-    } catch (e) {
-      console.error(e);
-      return defaultStyle;
-    }
-  };
-
-  // Helper to parse target redirection links safely
-  const parseActionLink = (act) => {
-    try {
-      if (!act || !act.action || !act.description) return null;
-      const action = String(act.action).toLowerCase();
-      const description = String(act.description);
-
-      // Deletes cannot link to anything as the entity is gone
-      if (action.includes('delete') || action.includes('remove')) {
-        return null;
-      }
-
-      if (action.includes('invoice')) {
-        const match = description.match(/Invoice\s*#:\s*([^\s,]+)/i);
-        if (match && match[1]) {
-          return {
-            to: `/invoices?search=${encodeURIComponent(match[1].trim())}`,
-            label: 'View Slip',
-          };
-        }
-      }
-
-      if (action.includes('item')) {
-        const match = description.match(/item\s*"([^"]+)"/i);
-        if (match && match[1]) {
-          return {
-            to: `/items?search=${encodeURIComponent(match[1].trim())}`,
-            label: 'View Product',
-          };
-        }
-      }
-
-      if (action.includes('company')) {
-        let match = description.match(/company:\s*([^\n,.]+)/i);
-        if (!match) {
-          match = description.match(/to\s*"([^"]+)"/i);
-        }
-        if (match && match[1]) {
-          const name = match[1].replace(/"/g, '').trim();
-          return {
-            to: `/companies?search=${encodeURIComponent(name)}`,
-            label: 'View Company',
-          };
-        }
-      }
-
-      if (action.includes('category')) {
-        let match = description.match(/category:\s*([^\n,.]+)/i);
-        if (!match) {
-          match = description.match(/to\s*"([^"]+)"/i);
-        }
-        if (match && match[1]) {
-          const name = match[1].replace(/"/g, '').trim();
-          return {
-            to: `/categories?search=${encodeURIComponent(name)}`,
-            label: 'View Category',
-          };
-        }
-      }
-
-      if (action.includes('settings')) {
-        return {
-          to: '/settings',
-          label: 'View Settings',
-        };
-      }
-      return null;
-    } catch (e) {
-      console.error('Failed to parse log redirection:', e);
-      return null;
-    }
-  };
-
-  const formatTimestamp = (ts) => {
-    try {
-      if (!ts) return 'N/A';
-      const d = new Date(ts);
-      if (isNaN(d.getTime())) {
-        return 'N/A';
-      }
-      return `${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
-    } catch (e) {
-      return 'N/A';
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -277,7 +274,7 @@ const ActivityLogs = () => {
                     const Icon = actStyles.icon || UserCheck;
 
                     return (
-                      <tr key={act._id} className="hover:bg-slate-50/60 transition-colors">
+                      <tr key={act._id || Math.random().toString()} className="hover:bg-slate-50/60 transition-colors">
                         {/* Timestamp */}
                         <td className="py-4 px-4 text-slate-500 font-mono whitespace-nowrap">
                           {formatTimestamp(act.timestamp)}
@@ -300,7 +297,7 @@ const ActivityLogs = () => {
                         {/* Action Type */}
                         <td className="py-4 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                            <span className={`rounded p-1 ${actStyles.color}`}>
+                            <span className={`rounded p-1 ${actStyles.color || 'text-slate-600 bg-slate-50 border-slate-100'}`}>
                               <Icon size={12} />
                             </span>
                             <span>{act.action}</span>
